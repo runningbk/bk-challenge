@@ -36,18 +36,20 @@ const CSS=`
 .bkt .bkt-room{height:44px;border-radius:22px;padding:0 14px;white-space:nowrap;display:flex;align-items:center;font-size:15px;font-weight:800}
 .bkt .bkt-bar{height:44px;border-radius:22px;display:flex;align-items:center;gap:6px;padding:0 14px;font-weight:800}
 .bkt .bkt-side{position:absolute;right:12px;top:calc(66px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.bkt .bkt-stat{border-radius:16px;padding:8px 12px}
-.bkt .bkt-stat small{display:block;font-size:13px;color:#c5ccd8}
-.bkt .bkt-stat .bkt-n{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
-.bkt .bkt-row{display:flex;gap:14px}
-.bkt .bkt-pace{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(214px + env(safe-area-inset-bottom));font-size:34px;font-weight:800;letter-spacing:-.03em;color:#cdf564;text-shadow:0 2px 10px rgba(0,0,0,.55);white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;transition:opacity .3s}
+.bkt .bkt-stat{border-radius:16px;padding:8px 10px 8px 12px;width:196px}
+.bkt .bkt-stat small{display:block;font-size:12px;color:#c5ccd8}
+.bkt .bkt-stat .bkt-n{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.bkt .bkt-row{display:flex;justify-content:space-between;gap:8px}
+.bkt .bkt-pace{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(166px + env(safe-area-inset-bottom));font-size:34px;font-weight:800;letter-spacing:-.03em;color:#cdf564;text-shadow:0 2px 10px rgba(0,0,0,.55);white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;transition:opacity .3s}
 .bkt .bkt-pace small{font-size:16px;margin-left:4px;color:#fff}
 .bkt .bkt-tag{position:absolute;left:12px;top:calc(68px + env(safe-area-inset-top));z-index:1;font-size:13px;color:#d3dae6;padding:5px 11px;border-radius:999px;max-width:calc(100% - 252px)}
-.bkt.bkt-over .bkt-lane,.bkt.bkt-over .bkt-say,.bkt.bkt-over .bkt-ctx,.bkt.bkt-over .bkt-stat{display:none!important}
-.bkt .bkt-map{position:relative;width:150px;height:88px;border-radius:16px;padding:0;overflow:hidden}
+.bkt.bkt-over .bkt-lane,.bkt.bkt-over .bkt-ctx,.bkt.bkt-over .bkt-stat .bkt-row{display:none!important}
+.bkt.bkt-over .bkt-map{margin-top:0}
+.bkt .bkt-map{position:relative;display:block;width:100%;height:58px;margin-top:6px;border-radius:10px;padding:0;overflow:hidden;background:rgba(255,255,255,.06)}
 .bkt .bkt-map canvas{width:100%;height:100%;touch-action:manipulation}
-.bkt .bkt-map span{position:absolute;left:0;right:0;bottom:50%;transform:translateY(50%);text-align:center;font-size:11px;color:#dfe5ee;pointer-events:none}
-.bkt .bkt-toasts{position:absolute;left:0;right:0;bottom:calc(262px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.bkt .bkt-map span{position:absolute;left:0;right:0;bottom:50%;transform:translateY(50%);text-align:center;font-size:12px;color:#dfe5ee;pointer-events:none}
+.bkt .bkt-map .bkt-i{position:absolute;right:4px;top:4px;width:14px;height:14px;opacity:.7}
+.bkt .bkt-toasts{position:absolute;left:0;right:0;bottom:calc(214px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
 .bkt .bkt-toast{border-radius:999px;padding:8px 16px;font-size:15px;max-width:86%;text-align:center;transition:opacity .5s;background:rgba(18,22,30,.72)}
 .bkt .bkt-toast.hide{opacity:0}
 .bkt .bkt-toast.hi{background:rgba(205,245,100,.94);color:#1c2a05;font-weight:700}
@@ -55,11 +57,14 @@ const CSS=`
 .bkt .bkt-bottom button{flex:1;border-radius:20px;padding:10px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#e8ecf2}
 .bkt .bkt-bottom button[aria-pressed=true]{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
 .bkt .bkt-bottom .bkt-i{width:24px;height:24px}
-.bkt .bkt-lane{position:absolute;bottom:calc(116px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:50%;display:grid;place-items:center}
+.bkt .bkt-lane{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom));width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
 .bkt .bkt-lane.l{left:14px}.bkt .bkt-lane.r{right:14px}
-.bkt .bkt-lane small{position:absolute;bottom:-20px;font-size:13px;color:#e4e9f0;white-space:nowrap;text-shadow:0 1px 4px #000}
-.bkt .bkt-say{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(106px + env(safe-area-inset-bottom));height:44px;border-radius:22px;padding:0 18px;display:flex;align-items:center;gap:6px;font-weight:800;font-size:15px}
-.bkt .bkt-ctx{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(160px + env(safe-area-inset-bottom));border-radius:999px;padding:10px 14px;background:#fff;color:#1b2333;font-weight:800;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
+.bkt .bkt-menu{position:absolute;right:12px;top:calc(62px + env(safe-area-inset-top));z-index:6;border-radius:18px;padding:6px;min-width:200px;background:rgba(18,22,30,.94)}
+.bkt .bkt-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;border-radius:12px;font-size:16px;font-weight:700;text-align:left}
+.bkt .bkt-menu button:active{background:rgba(255,255,255,.1)}
+.bkt .bkt-acts{display:flex;gap:8px;margin-bottom:6px}
+.bkt .bkt-acts button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border-radius:14px;background:rgba(255,255,255,.12);font-size:15px;font-weight:700}
+.bkt .bkt-ctx{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(110px + env(safe-area-inset-bottom));border-radius:999px;padding:8px 8px 8px 14px;background:#fff;color:#1b2333;font-weight:800;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
 .bkt .bkt-ctx button{margin-left:6px;padding:7px 12px;border-radius:999px;background:#1d6cff;color:#fff;font-weight:800;font-size:14px}
 .bkt .bkt-ctx button+button{background:#d63c3c}
 .bkt .bkt-sh{z-index:5;position:absolute;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));border-radius:26px;padding:16px 14px 14px;max-height:62%;overflow:auto;background:rgba(18,22,30,.96)}
@@ -86,22 +91,26 @@ const HUD=`<div class="bkt-wrap"><canvas></canvas>
  <div class="bkt-top">
   <button class="bkt-circ bkt-g" data-k="exit" aria-label="트랙에서 나가기">${ic('<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>')}</button>
   <span class="bkt-room bkt-g" data-k="room"></span>
-  <button class="bkt-circ bkt-g" style="margin-left:auto" data-k="dress" aria-label="꾸미기">${ic('<path d="M8 4l-4 3 2 4 2-1v10h8V10l2 1 2-4-4-3c-.5 1.7-2 2.6-4 2.6S8.5 5.7 8 4z"/>')}</button>
-  <button class="bkt-circ bkt-g" data-k="cam" aria-label="카메라 각도 바꾸기">${ic('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>')}</button>
-  <button class="bkt-bar bkt-g" data-k="who" aria-label="트랙에 있는 사람 보기">${ic('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2a3 3 0 0 1 0 5.6M18 14.2c1.8.8 3 2.7 3 4.8"/>')}<span data-k="cnt">1</span></button>
+  <button class="bkt-bar bkt-g" style="margin-left:auto" data-k="who" aria-label="트랙에 있는 사람 보기">${ic('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2a3 3 0 0 1 0 5.6M18 14.2c1.8.8 3 2.7 3 4.8"/>')}<span data-k="cnt">1</span></button>
+  <button class="bkt-circ bkt-g" data-k="more" aria-label="메뉴" aria-expanded="false">${ic('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>')}</button>
  </div>
- <div class="bkt-side"><div class="bkt-stat bkt-g"><div class="bkt-row"><div><small>함께 달린 시간</small><span class="bkt-n" data-k="tm">00:00</span></div><div><small>바퀴</small><span class="bkt-n" data-k="lp">0.0</span></div><div><small>페이스</small><span class="bkt-n" data-k="pc">--</span></div></div></div>
- <button class="bkt-map bkt-g" data-k="map" aria-label="트랙 전체 보기"><canvas data-k="mapC"></canvas><span data-k="mapT">눌러서 전체 보기</span></button></div>
+ <div class="bkt-menu" data-k="menu" hidden>
+  <button data-k="dress">${ic('<path d="M8 4l-4 3 2 4 2-1v10h8V10l2 1 2-4-4-3c-.5 1.7-2 2.6-4 2.6S8.5 5.7 8 4z"/>')}내 캐릭터 꾸미기</button>
+  <button data-k="cam">${ic('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>')}카메라 각도 바꾸기</button>
+  <button data-k="map">${ic('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>')}트랙 전체 보기</button>
+ </div>
+ <div class="bkt-side"><div class="bkt-stat bkt-g"><div class="bkt-row"><div><small>함께 달린 시간</small><span class="bkt-n" data-k="tm">00:00</span></div><div><small>바퀴</small><span class="bkt-n" data-k="lp">0.0</span></div><div><small>페이스</small><span class="bkt-n" data-k="pc">--</span></div></div>
+ <button class="bkt-map" data-k="map" aria-label="트랙 전체 보기"><canvas data-k="mapC"></canvas><span data-k="mapT"></span>${ic('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>')}</button></div></div>
  <div class="bkt-tag bkt-g" data-k="tag" hidden></div>
  <div class="bkt-pace" data-k="pace" style="opacity:0" aria-hidden="true"></div>
  <div class="bkt-toasts" data-k="toasts" aria-live="polite"></div>
- <button class="bkt-lane l bkt-g" data-d="-1" aria-label="안쪽 레인으로">${ic('<path d="M15 6l-6 6 6 6"/>')}<small>안쪽 레인</small></button>
- <button class="bkt-lane r bkt-g" data-d="1" aria-label="바깥 레인으로">${ic('<path d="M9 6l6 6-6 6"/>')}<small>바깥 레인</small></button>
+ <button class="bkt-lane l bkt-g" data-d="-1" aria-label="안쪽 레인으로">${ic('<path d="M15 6l-6 6 6 6"/>')}</button>
+ <button class="bkt-lane r bkt-g" data-d="1" aria-label="바깥 레인으로">${ic('<path d="M9 6l6 6-6 6"/>')}</button>
  <div class="bkt-ctx" data-k="ctx" hidden><span data-k="ctxN"></span><button data-t="지나갈게요~">지나갈게요~</button><button data-t="비켜주세요!??">비켜주세요!??</button></div>
  <div class="bkt-ctx" data-k="cheer" hidden><span data-k="cheerN"></span><button data-k="cheerGo">하이파이브</button></div>
- <button class="bkt-say bkt-g" data-k="sayBtn">${ic('<path d="M4 5h16v11H9l-5 4z"/>')}한마디</button>
  <div class="bkt-sh" data-k="sheet" hidden><button class="bkt-x" data-k="sheetX" aria-label="닫기">${XI}</button>
-  <h3>한마디 하기</h3><p>러너끼리만 아는 그 말. 누르면 내 머리 위에 말풍선으로 떠요.</p><div data-k="phr"></div></div>
+  <h3>한마디 하기</h3><p>러너끼리만 아는 그 말. 누르면 내 머리 위에 말풍선으로 떠요.</p>
+  <div class="bkt-acts"><button data-a="wave">손 흔들기</button><button data-a="breathe">숨 고르기</button></div><div data-k="phr"></div></div>
  <div class="bkt-sh" data-k="dressSh" hidden><button class="bkt-x" data-k="dressX" aria-label="닫기">${XI}</button>
   <h3>내 캐릭터 꾸미기</h3><p>고르면 바로 내 러너에게 입혀져요. 앱 프로필도 같은 모습으로 바뀌어요.</p>
   <div data-k="dressEd"></div></div>
@@ -110,9 +119,8 @@ const HUD=`<div class="bkt-wrap"><canvas></canvas>
  <div class="bkt-bottom bkt-g" data-k="acts">
   <button data-a="run" aria-pressed="true">${ic('<circle cx="14" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v4M6 12l3-4 4 1 3 4 3 1M11 15l-1-5"/>')}달리기</button>
   <button data-a="walk" aria-pressed="false">${ic('<circle cx="13" cy="4.5" r="2"/><path d="M10 21l2-6 2 2v4M9 13l2-4h3l2 4M12 15V9"/>')}걷기</button>
-  <button data-a="wave">${ic('<path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V4.5a1.5 1.5 0 0 1 3 0V10M13 10V5.5a1.5 1.5 0 0 1 3 0V12M16 9.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-12.5 4.3L4 15a1.5 1.5 0 0 1 2.3-2L7 14"/>')}인사</button>
   <button data-a="five">${ic('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V5.5a1.5 1.5 0 0 1 3 0V13M17 10a1.5 1.5 0 0 1 3 0v4a7 7 0 0 1-12 5l-3-4a1.5 1.5 0 0 1 2.3-2L8 14"/>')}하이파이브</button>
-  <button data-a="breathe">${ic('<path d="M4 12c2-3 4-3 6 0s4 3 6 0 4-3 4-3M4 17c2-3 4-3 6 0s4 3 6 0 4-3 4-3M4 7c2-3 4-3 6 0s4 3 6 0 4-3 4-3"/>')}숨 고르기</button>
+  <button data-k="sayBtn">${ic('<path d="M4 5h16v11H9l-5 4z"/>')}한마디</button>
  </div>
 </div>`;
 
@@ -572,7 +580,9 @@ const onClick=e=>{const b=e.target.closest('button');if(!b||!root.contains(b))re
  const kk=b.dataset.k;
  if(kk==='exit')return close();
  if(b.dataset.d){if(!me.free){me.lane=Math.max(0,Math.min(NL-1,me.lane+ +b.dataset.d));sendState();}return;}
- if(b.dataset.a)return act(b.dataset.a,b);
+ if(kk!=='more'){k('menu').hidden=true;k('more').setAttribute('aria-expanded','false');}
+ if(kk==='more'){const m=k('menu');m.hidden=!m.hidden;b.setAttribute('aria-expanded',String(!m.hidden));return;}
+ if(b.dataset.a){if(b.closest('[data-k=sheet]'))k('sheet').hidden=true;return act(b.dataset.a,b);}
  if(b.dataset.t){const t=b.dataset.t,o=ctxFor;k('ctx').hidden=true;ctxFor=null;say(t,o&&o.live?o.id:null);return;}
  if(kk==='cheerGo'){if(cheerFor)doCheer(cheerFor);return;}
  if(kk==='map'){setOver(!over);return;}
@@ -600,7 +610,7 @@ function drawMap(){const dpr=Math.min(devicePixelRatio||1,2),w=mapC.clientWidth|
  const dot=(q,fill,ring,r)=>{mx.beginPath();mx.arc(X(q.x),Z(q.z),r,0,Math.PI*2);if(fill){mx.fillStyle=fill;mx.fill();}if(ring){mx.lineWidth=1.5;mx.strokeStyle=ring;mx.stroke();}};
  ppl.forEach(p=>{const c=hx(ccol(p.cls)),q=p.av.root.position;p.live?dot(q,c,'#fff',2.6):dot(q,p.cheered?'rgba(255,255,255,.35)':'#fff',c,2.3);});
  dot(me.av.root.position,'#cdf564','#1c2a05',3.2);}
-function setOver(on){over=on;root.classList.toggle('bkt-over',on);k('mapT').textContent=on?'눌러서 돌아가기':'눌러서 전체 보기';
+function setOver(on){over=on;root.classList.toggle('bkt-over',on);k('mapT').textContent=on?'눌러서 돌아가기':'';
  ppl.concat(me).forEach(p=>p.av.root.scale.setScalar(on?2.6:1));S.fog=on?null:new T.Fog(sky.fog,60,230);
  if(on)toast('미니맵을 다시 누르면 돌아가요');}
 // 접속 인원 → 누가 있는지 목록(지금 접속한 사람, 오늘 달린 우리 반)

@@ -1,4 +1,4 @@
-window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.ac31c791dc.js";window.BK_TRACK_SRC="assets/track.4f315cf895.js";
+window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.ac31c791dc.js";window.BK_TRACK_SRC="assets/track.45300c5391.js";
 /* 러닝 BK 소리: 효과음과 배경음악을 브라우저 안에서 직접 합성해요.
    음원 파일을 하나도 쓰지 않아서 저작권·라이선스 걱정이 없고, 앱 용량도 거의 늘지 않아요(약 9KB).
    BKSound.play('levelup') 처럼 부르고, 설정은 기기마다 localStorage 'bk:sound'에 저장돼요. */
