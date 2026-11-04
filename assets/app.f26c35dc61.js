@@ -1,4 +1,4 @@
-window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.ac31c791dc.js";window.BK_TRACK_SRC="assets/track.6cfb554380.js";
+window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.ac31c791dc.js";window.BK_TRACK_SRC="assets/track.4f315cf895.js";
 /* 러닝 BK 소리: 효과음과 배경음악을 브라우저 안에서 직접 합성해요.
    음원 파일을 하나도 쓰지 않아서 저작권·라이선스 걱정이 없고, 앱 용량도 거의 늘지 않아요(약 9KB).
    BKSound.play('levelup') 처럼 부르고, 설정은 기기마다 localStorage 'bk:sound'에 저장돼요. */
@@ -132,6 +132,111 @@ function set(p){if(typeof p.sfx==='boolean')st.sfx=p.sfx;if(typeof p.bgm==='bool
 window.BKSound={play,set,get:()=>({...st}),supported:!!(window.AudioContext||window.webkitAudioContext),list:Object.keys(SFX)};
 })();
 
+;/* ===== 러너 캐릭터(프로필) =====
+ * 온라인 트랙의 3D 러너와 같은 모습을 2D SVG로 그려요. 순위표·반 소식처럼 여러 개가 한꺼번에 떠도 가벼워요.
+ *
+ *   BKAvatar.normalize(look)                → 빈칸을 채운 올바른 look
+ *   BKAvatar.svg(look, color, size=40)      → SVG 문자열(color = 반 색 '#rrggbb', 티셔츠·'반 색' 액세서리에 써요)
+ *   BKAvatar.editor(el, look, color, onChange) → 미리보기+칩 편집기, {destroy()} 를 돌려줘요
+ *   BKAvatar.OPTIONS, BKAvatar.hex(kind, name) → 이름 → 색(hex)
+ *
+ * look(서버 profiles.look, jsonb): {"v":1,"hat":"러닝캡","hatC":"","face":"기본","hair":"앞머리","hairC":"갈색","skin":"보통"}
+ * hatC가 빈 문자열이면 반 색이에요. 모르는 값은 기본값으로 바꿔요. */
+(function(){
+'use strict';
+const OPTIONS={
+ hat:['없음','러닝캡','선캡','헤어밴드','비니','고글'],
+ hatC:[['','반 색'],['흰색','#ffffff'],['검정','#1b2333'],['라임','#cdf564'],['하늘','#8fd3ff'],['분홍','#ff9fc0'],['노랑','#ffd166']],
+ face:['기본','웃음','신남','힘듦','땀뻘뻘','화남','멍'],
+ hair:['짧은','앞머리','묶음','앞머리묶음'],
+ hairC:[['검정','#1e1a19'],['갈색','#4a3226'],['밝은갈색','#8a5a3c'],['회색','#a3a3ab']],
+ skin:[['밝은','#fde0c8'],['보통','#f8d3b0'],['구릿빛','#d9a27a']]};
+const DEF={v:1,hat:'러닝캡',hatC:'',face:'기본',hair:'앞머리',hairC:'갈색',skin:'보통'};
+const pairs=k=>OPTIONS[k].map(x=>x[0]);
+function normalize(l){const o=l&&typeof l==='object'?l:{},r={v:1};
+ const hat=o.hat==='선글라스'?'고글':o.hat;// 예전 이름
+ r.hat=OPTIONS.hat.includes(hat)?hat:DEF.hat;
+ r.hatC=pairs('hatC').includes(o.hatC)?o.hatC:DEF.hatC;
+ r.face=OPTIONS.face.includes(o.face)?o.face:DEF.face;
+ r.hair=OPTIONS.hair.includes(o.hair)?o.hair:DEF.hair;
+ r.hairC=pairs('hairC').includes(o.hairC)?o.hairC:DEF.hairC;
+ r.skin=pairs('skin').includes(o.skin)?o.skin:DEF.skin;
+ return r;}
+const hexOf=(k,n)=>{const f=OPTIONS[k].find(x=>x[0]===n);return f?f[1]:'';};
+const okCol=c=>/^#[0-9a-f]{6}$/i.test(c||'')?c:'#8a94a6';
+function shade(hex,t){const n=parseInt(hex.slice(1),16),f=s=>Math.max(0,Math.min(255,Math.round(((n>>s)&255)*(1+t))));return '#'+[16,8,0].map(s=>f(s).toString(16).padStart(2,'0')).join('');}
+
+// 얼굴 부품(100×100 기준, 머리 중심 50,50 반지름 30)
+const INK='#231a17',MOUTH='#7a3a2e';
+function faceSvg(f){const eye=x=>`<ellipse cx="${x}" cy="53" rx="3.6" ry="4.8" fill="${INK}"/><circle cx="${x+1.3}" cy="51.2" r="1.3" fill="#fff"/>`;
+ const happy=x=>`<path d="M${x-4} 54q4-5 8 0" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+ const blush=`<ellipse cx="34" cy="62" rx="5" ry="2.8" fill="#ff8fa3" opacity=".55"/><ellipse cx="66" cy="62" rx="5" ry="2.8" fill="#ff8fa3" opacity=".55"/>`;
+ const smile=`<path d="M45 63q5 5 10 0" stroke="${MOUTH}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+ const grin=`<path d="M43.5 61.5h13q-1 8-6.5 8t-6.5-8z" fill="${MOUTH}"/><ellipse cx="50" cy="67" rx="3.4" ry="1.8" fill="#ff7a8a"/>`;
+ const open=`<ellipse cx="50" cy="65" rx="3.6" ry="4.2" fill="${MOUTH}"/>`;
+ const drop=(x,y,s)=>`<path d="M${x} ${y-5*s}q${4*s} ${6*s} 0 ${9*s}q${-4*s} ${-3*s} 0 ${-9*s}z" fill="#5cc6ff"/>`;
+ switch(f){
+  case '웃음':return happy(41)+happy(59)+blush+smile;
+  case '신남':return happy(41)+happy(59)+blush+grin;
+  case '힘듦':return `<path d="M38 50l5 3.5-5 3.5M62 50l-5 3.5 5 3.5" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+open+drop(78,44,1.1)+drop(22,52,.8);
+  case '땀뻘뻘':return eye(41)+eye(59)+blush+open+drop(79,40,1.3)+drop(21,50,1)+drop(70,30,.8);
+  case '화남':return eye(41)+eye(59)+`<path d="M35 44l10 4M65 44l-10 4" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M45 66q5-5 10 0" stroke="${MOUTH}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  case '멍':return `<circle cx="41" cy="53" r="2.2" fill="${INK}"/><circle cx="59" cy="53" r="2.2" fill="${INK}"/><path d="M46 64h8" stroke="${MOUTH}" stroke-width="2" stroke-linecap="round"/>`;
+  default:return eye(41)+eye(59)+blush+smile;}}
+function hairBack(h,c){return h==='묶음'||h==='앞머리묶음'?`<circle cx="76" cy="30" r="9" fill="${c}"/><circle cx="71" cy="34" r="3" fill="${shade(c,-.25)}"/>`:'';}
+function hairTop(h,c){let s=`<path d="M20.5 46a29.5 29.5 0 0 1 59 0q-6-12-29.5-12t-29.5 12z" fill="${c}"/>`;
+ if(h==='앞머리'||h==='앞머리묶음')s+=`<path d="M27 40q10-12 23-12t23 12q-8-3-14-1q-4 4-9 4t-9-4q-6-2-14 1z" fill="${c}"/>`;return s;}
+function hatSvg(k,c){const d=shade(c,-.18);
+ switch(k){
+  case '러닝캡':return `<path d="M20 42a30 28 0 0 1 60 0z" fill="${c}"/><path d="M20 42h60" stroke="${d}" stroke-width="2"/><ellipse cx="50" cy="44" rx="26" ry="5" fill="${d}"/><circle cx="50" cy="15" r="2.6" fill="${d}"/>`;
+  case '선캡':return `<path d="M20 36h60v7H20z" fill="${c}"/><ellipse cx="50" cy="45" rx="29" ry="6" fill="${d}"/>`;
+  case '헤어밴드':return `<path d="M21 37q29-9 58 0v6q-29-9-58 0z" fill="${c}"/>`;
+  case '비니':return `<path d="M19 40a31 30 0 0 1 62 0z" fill="${c}"/><rect x="18" y="36" width="64" height="8" rx="4" fill="${d}"/><circle cx="50" cy="10" r="5" fill="#fff"/>`;
+  case '고글':return `<path d="M20 52q30-5 60 0" stroke="${d}" stroke-width="5" fill="none"/>`+
+   `<path d="M29 46q21-6 42 0q2 8-3 13q-6 3-12-1q-3-2-6-2t-6 2q-6 4-12 1q-5-5-3-13z" fill="${c}"/>`+
+   `<path d="M32 48.5q18-5 36 0q1.5 6-2.5 9.5q-4.5 2-9-1q-3-2.5-6.5-2.5t-6.5 2.5q-4.5 3-9 1q-4-3.5-2.5-9.5z" fill="url(#g${c.slice(1)})"/>`+
+   `<defs><linearGradient id="g${c.slice(1)}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd6ff"/><stop offset=".45" stop-color="#3a4fd0"/><stop offset="1" stop-color="#b44fd6"/></linearGradient></defs>`+
+   `<path d="M36 50.5l7-1.5M38 54l3-.6" stroke="#fff" stroke-width="1.6" opacity=".75" stroke-linecap="round"/>`;
+  default:return '';}}
+let uid=0;
+function svg(look,color,size){const id='bkc'+(++uid),l=normalize(look),cc=okCol(color),sz=+size||40;
+ const skin=hexOf('skin',l.skin),hair=hexOf('hairC',l.hairC),hatC=l.hatC?hexOf('hatC',l.hatC):cc;
+ return `<svg class="bk-av" width="${sz}" height="${sz}" viewBox="0 0 100 100" aria-hidden="true">`+
+  `<circle cx="50" cy="50" r="50" fill="${shade(cc,.82)}"/>`+
+  `<clipPath id="${id}"><circle cx="50" cy="50" r="50"/></clipPath><g clip-path="url(#${id})">`+
+  `<path d="M16 104q2-24 34-24t34 24z" fill="${cc}"/>`+
+  hairBack(l.hair,hair)+
+  `<ellipse cx="20.5" cy="54" rx="4" ry="6" fill="${skin}"/><ellipse cx="79.5" cy="54" rx="4" ry="6" fill="${skin}"/>`+
+  `<circle cx="50" cy="50" r="30" fill="${skin}"/>`+hairTop(l.hair,hair)+faceSvg(l.face)+hatSvg(l.hat,hatC)+`</g></svg>`;}
+
+// 편집기: 라이트(앱)·다크(트랙) 어디서나 보이게 반투명 칩
+const CSS=`.bka{color:inherit}.bka-pv{display:flex;justify-content:center;margin:4px 0 6px}
+.bka-cat{font-size:13px;font-weight:700;opacity:.7;margin:12px 0 6px}
+.bka-row{display:flex;flex-wrap:wrap;gap:6px}
+.bka-row button{font:inherit;font-size:15px;font-weight:600;color:inherit;border:0;border-radius:999px;padding:9px 13px;background:rgba(127,127,127,.16);cursor:pointer}
+.bka-row button[aria-pressed=true]{background:#cdf564;color:#1c2a05}
+.bka-row.bka-sw button{width:36px;height:36px;padding:0;border:2px solid rgba(127,127,127,.35)}
+.bka-row.bka-sw button[aria-pressed=true]{outline:3px solid #cdf564;outline-offset:2px}`;
+function ensureCss(){if(document.getElementById('bka-css'))return;const s=document.createElement('style');s.id='bka-css';s.textContent=CSS;document.head.appendChild(s);}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function editor(el,look,color,onChange){ensureCss();let l=normalize(look);const cc=okCol(color);
+ const chips=(k,list)=>`<div class="bka-row">${list.map(v=>`<button type="button" data-k="${k}" data-v="${esc(v)}" aria-pressed="${l[k]===v}">${esc(v)}</button>`).join('')}</div>`;
+ const sw=(k)=>`<div class="bka-row bka-sw">${OPTIONS[k].map(([n,h])=>`<button type="button" data-k="${k}" data-v="${esc(n)}" aria-label="${esc(n||'반 색')}" aria-pressed="${l[k]===n}" style="background:${n?h:cc}"></button>`).join('')}</div>`;
+ const draw=()=>{el.innerHTML=`<div class="bka"><div class="bka-pv">${svg(l,cc,96)}</div>
+  <div class="bka-cat">머리 액세서리</div>${chips('hat',OPTIONS.hat)}
+  <div class="bka-cat">액세서리 색</div>${sw('hatC')}
+  <div class="bka-cat">표정</div>${chips('face',OPTIONS.face)}
+  <div class="bka-cat">머리 모양</div>${chips('hair',OPTIONS.hair)}
+  <div class="bka-cat">머리색</div>${sw('hairC')}
+  <div class="bka-cat">피부</div>${sw('skin')}</div>`;};
+ const onClick=e=>{const b=e.target.closest('button[data-k]');if(!b||!el.contains(b))return;e.stopPropagation();
+  l=normalize({...l,[b.dataset.k]:b.dataset.v});draw();if(typeof onChange==='function')onChange({...l});};
+ el.addEventListener('click',onClick);draw();
+ return {destroy(){el.removeEventListener('click',onClick);el.innerHTML='';},get look(){return {...l};}};}
+
+window.BKAvatar={OPTIONS,DEFAULT:{...DEF},normalize,svg,editor,hex:hexOf};
+})();
+
 ;'use strict';
 /* ===== 러닝 BK 챌린지 =====
  * window.BK_CONFIG({url, anonKey})와 supabase-js가 있으면 실제 서버(Supabase)에 연결하고,
@@ -224,6 +329,11 @@ function applyBoot(j){
  if(D.me){const c=ccol(D.me.class_id),r=document.documentElement.style;r.setProperty('--mc',c);r.setProperty('--mc-soft',mix(c,'#ffffff',.86));r.setProperty('--mc-ink',mix(c,'#000000',.38));}
 }
 const cname=id=>(D&&D.classMeta[id]||{}).name||'';
+// 캐릭터 얼굴(avatar.js). 없거나 그리기 실패하면 이니셜을 그대로 써요.
+const lookOf=uid=>(S.looks||{})[uid]||null;
+const AV=()=>window.BKAvatar&&typeof window.BKAvatar.svg==='function';
+function faceSvg(uid,cls,size){if(!AV())return '';try{return window.BKAvatar.svg(lookOf(uid),ccol(cls),size)||'';}catch(_){return '';}}
+const faceIn=(uid,cls,txt,size=40)=>faceSvg(uid,cls,size)||txt;
 const ccol=id=>col((D&&D.classMeta[id]||{}).color);
 const avStyle=id=>{const c=ccol(id);return `background:${mix(c,'#ffffff',.86)};color:${mix(c,'#000000',.38)}`;};
 const isStaff=()=>!!(D&&D.me&&D.me.status==='active'&&(D.me.role==='admin'||D.me.role==='reviewer'));
@@ -247,6 +357,9 @@ function liveApi(){
   claim:(q,p)=>rpc('claim_quest',{p_quest_id:q,p_period:p}),
   cheer:id=>rpc('toggle_cheer',{p_run_id:id}),
   memberRuns:id=>rpc('member_runs',{p_user_id:id}),
+  looks:()=>rpc('member_looks'),
+  trackXp:k=>rpc('claim_track_xp',{p_kind:k}),
+  setLook:l=>rpc('set_my_look',{p_look:l}),
   withdraw:id=>rpc('withdraw_run',{p_run_id:id}),
   async submit({key,date,time,distance_m,duration_s,kind,memo,files,fromPhoto,pace_s,progress}){
    const paths=[];
@@ -334,6 +447,11 @@ function demoApi(){
   claim(q,p){if(DB.my_claims.some(c=>c.quest_id===q&&c.period_key===p))return fail('already_claimed','이미 받은 보상이에요.');const r={quest_id:q,period_key:p,xp:XP[q]};DB.my_claims.push(r);return wait(r);},
   cheer(id){const f=DB.feed.find(x=>x.run_id===id)||(DB.mruns||[]).find(x=>x.run_id===id);if(!f)return fail('not_found','기록을 찾을 수 없습니다.');f.cheered_by_me=!f.cheered_by_me;f.cheer_count+=f.cheered_by_me?1:-1;
    DB.my_cheers=DB.my_cheers.filter(c=>c.run_id!==id);if(f.cheered_by_me)DB.my_cheers.unshift({run_id:id,cheer_date:DB.settings.today});return wait({cheered:f.cheered_by_me,count:f.cheer_count});},
+  trackXp(k){const q=k==='enter'?'t_enter':'t_five',p=D.today;let c=DB.my_claims.find(x=>x.quest_id===q&&x.period_key===p);const cur=c?c.xp:0;
+   const due=k==='enter'?(cur?0:3):(cur<5?1:0);if(!due)return wait({quest_id:q,period_key:p,xp:0,total:cur});
+   if(!c){c={quest_id:q,period_key:p,xp:0};DB.my_claims.push(c);}c.xp=cur+due;return wait({quest_id:q,period_key:p,xp:due,total:c.xp});},
+  looks:()=>wait(Object.entries(DB.looks||{}).map(([user_id,look])=>({user_id,look}))),
+  setLook(l){DB.looks=DB.looks||{};if(l)DB.looks.me=l;else delete DB.looks.me;return wait(l);},
   memberRuns(uid){const p=DB.leaderboard.find(x=>x.user_id===uid);if(!p)return wait([]);DB.mruns=DB.mruns||[];
    if(!DB.mruns.some(x=>x.user_id===uid)){const own=DB.feed.filter(f=>f.user_id===uid),n=Math.max(0,Math.min(6,(p.cert_days||0)-own.length));
     own.forEach(f=>DB.mruns.push({...f,class_id:p.class_id,duration_s:Math.round(f.distance_m*.36),pace_s:null,kind:'실외 러닝'}));
@@ -453,7 +571,7 @@ const staffQueueN=()=>S.admin.queue?S.admin.queue.filter(r=>!r.is_mine).length:0
 const joinN=()=>isAdmin()&&S.admin.members?S.admin.members.filter(m=>m.status==='pending').length:0;
 const todoN=()=>isStaff()?staffQueueN()+joinN():0;
 const unread=()=>!!S.seen&&(lastReviewAt()>(S.seen.notice||'')||todoN()>0);
-function topbar(){const L=lvInfo(),u=unread();return `<header class="top"><div class="top-text"><small>${md(D.today)} ${WD[dow(D.today)]}요일 · ${esc(cname(D.me.class_id))}반</small><strong>안녕하세요, ${esc(D.me.nickname)}님</strong></div><button class="icon-btn" data-act="notice" aria-label="알림${u?', 새 소식 있음':''}">${icon('bell')}${u?'<span class="dot"></span>':''}</button><button class="avatar" data-go="me" aria-label="내 프로필, 레벨 ${L.lv}">${esc(ini(D.me.nickname,2))}<span class="lv">${L.lv}</span></button></header>`;}
+function topbar(){const L=lvInfo(),u=unread();return `<header class="top"><div class="top-text"><small>${md(D.today)} ${WD[dow(D.today)]}요일 · ${esc(cname(D.me.class_id))}반</small><strong>안녕하세요, ${esc(D.me.nickname)}님</strong></div><button class="icon-btn" data-act="notice" aria-label="알림${u?', 새 소식 있음':''}">${icon('bell')}${u?'<span class="dot"></span>':''}</button><button class="avatar${AV()?' av':''}" data-go="me" aria-label="내 프로필, 레벨 ${L.lv}">${faceIn(D.me.id,D.me.class_id,esc(ini(D.me.nickname,2)),44)}<span class="lv">${L.lv}</span></button></header>`;}
 function playerCard(){const L=lvInfo(),G=g(),wk=monday(D.today);return `<section class="player" aria-label="나의 레벨"><div class="player-row">${tierBadge(L.lv,58)}<div class="player-info"><div class="tierline">${L.tier[1]} 티어</div><h2>Lv.${L.lv} ${esc(D.me.nickname)}</h2></div></div><div class="xp" role="progressbar" aria-label="다음 레벨까지 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${L.pct}"><i style="width:${L.pct}%"></i></div><div class="xp-text"><span class="num-s">${L.into.toLocaleString()} / ${L.need.toLocaleString()} XP</span><span>다음 레벨까지 <span class="num-s">${L.left.toLocaleString()}</span></span></div><div class="streak"><div class="streak-top"><strong>${icon('flame')}${G.cur}일 연속 러닝 중</strong><span>최장 ${G.best}일</span></div><div class="week">${Array.from({length:7},(_,i)=>{const d=addDays(wk,i),on=G.certSet.has(d);return `<span class="day${on?' on':''}${d===D.today?' today':''}${d>D.today||!inSeason(d)?' future':''}"><b>${on?icon('check'):''}</b>${'월화수목금토일'[i]}</span>`;}).join('')}</div></div></section>`;}
 function questRow(q){const pct=Math.min(100,q.now/q.goal*100),h=qHint(q);return `<div class="quest${q.done?' done':''}${q.got?' claimed':''}"><span class="quest-ico" style="--qc:${q.qc};--qb:${q.qb}">${qIcon(q)}</span><div class="quest-body"><strong>${q.title}</strong><div class="qbar"><i style="width:${pct}%"></i></div><small><span class="num-s">${q.txt&&q.txt(q.p)||`${fmt(Math.min(q.now,q.goal))}/${q.goal}${q.unit}`}</span>${h?' · '+h:''}</small></div>${q.got?`<span class="qbtn got">${icon('check')}완료</span>`:q.done?`<button class="qbtn claim" data-claim="${q.id}|${q.p}" aria-label="보상 ${q.xp} XP 받기">받기 +${q.xp}</button>`:`<span class="qbtn wait">+${q.xp} XP</span>`}</div>`;}
 function qSum(kind,name,qs){const ready=qs.filter(q=>q.done&&!q.got),xp=ready.reduce((t,q)=>t+q.xp,0);
@@ -482,7 +600,7 @@ function home(){
   h+=`<div class="sec-head"><h2>퀘스트</h2><span class="chip">오늘은 자정, 주간은 월요일 초기화</span></div><section class="card qsum">${qSum('d','오늘의 퀘스트',daily)}${qSum('w',`주간 퀘스트 <small class="qwk">${mds(wk)} – ${mds(addDays(wk,6))}</small>`,weekly)}
   ${S.qOpen?`<div class="qlist">${daily.concat(weekly).map(questRow).join('')}</div>`:''}<button class="qmore" data-act="quests-more" aria-expanded="${!!S.qOpen}">${S.qOpen?'접기':'자세히 보기'}${icon('chev')}</button></section>`;}
  h+=`<div class="sec-head"><h2>미션 빙고<span class="num">${bingoCount()}줄</span></h2></div>${bingoCard()}`;
- h+=`<p class="note">레벨 XP는 ${TIME()?'승인 1분당 2 XP, 30분 인증일마다 20 XP':'승인 1k당 10 XP, 5k 인증일마다 20 XP'}, 퀘스트·빙고 보너스로 쌓여요.${LIVE?'':'<br>시연 화면이라 수치는 가상 데이터예요.'}</p>`;
+ h+=`<p class="note">레벨 XP는 ${TIME()?'승인 1분당 2 XP, 30분 인증일마다 20 XP':'승인 1k당 10 XP, 5k 인증일마다 20 XP'}, 퀘스트·빙고 보너스로 쌓여요. 온라인 트랙에서도 인증한 날 첫 입장 3 XP, 하이파이브 1번에 1 XP(하루 5까지)를 받아요.${LIVE?'':'<br>시연 화면이라 수치는 가상 데이터예요.'}</p>`;
  return h;
 }
 function bingoCard(){const c=bingoCells(),lines=LINES.filter(l=>l.every(i=>c[i][2])),inl=new Set(lines.flat());return `<section class="card"><p class="bingo-note">승인된 기록으로 자동 체크돼요. 한 줄을 완성할 때마다 +100 XP</p><div class="bingo">${c.map(([e,t,on,sub],i)=>`<div class="cell${on?' on':''}${inl.has(i)?' line':''}"><span class="ce">${e}</span>${on?`<span class="stamp">${icon('check')}</span>`:''}<strong>${t}</strong><small>${sub}</small></div>`).join('')}</div>${c[4][2]||seasonState()!=='on'?'':`<button class="btn ghost" style="margin-top:14px" data-go="league">${icon('hand')}반 친구에게 하이파이브 보내기</button>`}</section>`;}
@@ -521,15 +639,26 @@ function league(){
  <div class="sec-head"><h2>반 순위</h2>${boardSeg()}</div><div class="board" data-board>${boardRows(rows)}</div>
  ${me&&me.members?`<div class="sec-head"><h2>내가 달리면?</h2></div><div class="gapcard">${TIME()?`<span class="big">+${fmt((30/me.members).toFixed(1))}분</span><p>내 30분 러닝이 승인되면 우리 반 평균이 <b class="nw">${fmt((30/me.members).toFixed(1))}분/인</b> 올라가요.<small>반 평균은 승인된 러닝 시간 합계를`:`<span class="big">+${fmt((5/me.members).toFixed(2))}</span><p>내 5k가 승인되면 우리 반 평균이 <b class="nw">${fmt((5/me.members).toFixed(2))}k/인</b> 올라가요.<small>반 평균은 승인 거리 합계를`} 레이스에 참가한 반원 수(${me.members}명)로 나눠요. 안 뛴 반원도 포함돼요.</small></p></div>`:''}
  ${me?`<div class="sec-head"><h2>우리 ${esc(me.name)}반 소식</h2><span class="chip">오늘 ${me.runnersToday}명 달림</span></div>${feed.length?`<section class="card list">${feed.map(f=>feedRow(f,me)).join('')}</section>`:emptyCard('hand','최근 3일 동안 승인된 기록이 아직 없어요','반 친구 기록이 승인되면 여기서 하이파이브를 보낼 수 있어요.')}`:''}
- ${crew.length?`<div class="sec-head"><h2>우리 반 기여 랭킹</h2></div><section class="card list">${crew.map((p,i)=>`<button class="crew-row" data-member="${esc(p.id)}"><span class="crew-av${p.me?' me':''}">${p.me?'나':esc(ini(p.name))}</span><div><strong>${i+1}. ${esc(p.name)}${p.me?' (나)':''}${i===0&&p.distance>0?`<svg class="gold" viewBox="0 0 24 24" role="img" aria-label="반 기여 1위" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">${I.medal}</svg>`:''}</strong><div class="contrib"><i style="width:${crew[0].distance?p.distance/crew[0].distance*100:0}%;${p.me?'background:var(--primary)':''}"></i></div></div><span class="cval">${rv(p.distance)}</span></button>`).join('')}</section>`:''}
+ ${crew.length?`<div class="sec-head"><h2>우리 반 기여 랭킹</h2></div><section class="card list">${crew.map((p,i)=>`<button class="crew-row" data-member="${esc(p.id)}"><span class="crew-av${p.me?' me':''}${AV()?' av':''}">${faceIn(p.id,p.cls,p.me?'나':esc(ini(p.name)),42)}</span><div><strong>${i+1}. ${esc(p.name)}${p.me?' (나)':''}${i===0&&p.distance>0?`<svg class="gold" viewBox="0 0 24 24" role="img" aria-label="반 기여 1위" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">${I.medal}</svg>`:''}</strong><div class="contrib"><i style="width:${crew[0].distance?p.distance/crew[0].distance*100:0}%;${p.me?'background:var(--primary)':''}"></i></div></div><span class="cval">${rv(p.distance)}</span></button>`).join('')}</section>`:''}
  <p class="note">순위는 운영진이 승인한 시즌 기록만 반영해요.${LIVE?'':' 반 이름·인원·거리는 시연용 가상 데이터예요.'}</p>`;
 }
-function feedRow(f,me){return `<div class="crew-row"><button class="crew-av${f.mine?' me':''}" data-member="${esc(f.user)}" aria-label="${esc(f.name)}님 기록 보기">${f.mine?'나':esc(ini(f.name))}</button><div><strong>${esc(f.name)}${f.mine?' (나)':''} · ${fmt(f.km)}k</strong><small>${mds(f.date)} 승인${me.members?` · ${TIME()?'반 평균에 반영':`우리 반 <span class="nw">+${fmt(f.km/me.members)}k/인</span>`}`:''}${f.cheers?` <span class="hf" aria-label="하이파이브 ${f.cheers}개">${icon('hand')}${f.cheers}</span>`:''}</small></div>${f.mine?'':`<button class="cheer${f.on?' on':''}" data-cheer="${esc(f.id)}" aria-pressed="${f.on}">${f.on?icon('check')+'응원함':icon('hand')+'하이파이브'}</button>`}</div>`;}
+function feedRow(f,me){return `<div class="crew-row"><button class="crew-av${f.mine?' me':''}" data-member="${esc(f.user)}" aria-label="${esc(f.name)}님 기록 보기">${faceIn(f.user,(D.players.find(x=>x.id===f.user)||{}).cls||D.me.class_id,f.mine?'나':esc(ini(f.name)),42)}</button><div><strong>${esc(f.name)}${f.mine?' (나)':''} · ${fmt(f.km)}k</strong><small>${mds(f.date)} 승인${me.members?` · ${TIME()?'반 평균에 반영':`우리 반 <span class="nw">+${fmt(f.km/me.members)}k/인</span>`}`:''}${f.cheers?` <span class="hf" aria-label="하이파이브 ${f.cheers}개">${icon('hand')}${f.cheers}</span>`:''}</small></div>${f.mine?'':`<button class="cheer${f.on?' on':''}" data-cheer="${esc(f.id)}" aria-pressed="${f.on}">${f.on?icon('check')+'응원함':icon('hand')+'하이파이브'}</button>`}</div>`;}
+/* ===== 캐릭터 꾸미기 ===== */
+async function saveLook(l,quiet){S.looks=S.looks||{};const prev=S.looks[D.me.id];S.looks[D.me.id]=l;
+ try{await API.setLook(l);if(!quiet)toast('캐릭터를 저장했어요');}
+ catch(e){S.looks[D.me.id]=prev;if(!quiet)toast(errMsg(e));if(authLost(e))sessionLost();}}
+let lookEd=null;
+function lookSheet(){if(!AV()||typeof window.BKAvatar.editor!=='function')return toast('꾸미기를 불러오지 못했어요');
+ let cur=lookOf(D.me.id);sheet(`<h2>캐릭터 꾸미기</h2><p class="note" style="margin:4px 0 12px">순위와 기록, 온라인 트랙에서 이 모습으로 보여요.</p><div data-look-ed></div><button class="btn" data-act="look-save" style="margin-top:16px">저장하기</button>`);
+ try{lookEd&&lookEd.destroy&&lookEd.destroy();}catch(_){}
+ lookEd=window.BKAvatar.editor($('#sheet [data-look-ed]'),cur,ccol(D.me.class_id),l=>{cur=l;});
+ S.lookDraft=()=>cur;}
+async function lookSave(b){await busy(b,async()=>{await saveLook(window.BKAvatar.normalize?window.BKAvatar.normalize(S.lookDraft()):S.lookDraft());closeSheet();render(true);});}
 /* ===== 다른 러너 기록 보기 + 하이파이브 ===== */
 function memberList(){const M=S.mem;if(!M.rows.length)return `<p class="note">이번 시즌 승인된 기록이 아직 없어요.</p>`;
  return M.rows.map(r=>`<div class="crew-row mrun"><span class="dt"><b>${+r.date.slice(8)}</b>${+r.date.slice(5,7)}월</span><div><strong>${TIME()?`${hm(r.duration)} · ${fmt(r.km)}k`:`${fmt(r.km)}k · ${hm(r.duration)}`}</strong><small>${(pc=>pc?pc+' · ':'')(pace(r.duration,r.km,r.pace))}${esc(r.kind||'')}${r.cheers?` <span class="hf" aria-label="하이파이브 ${r.cheers}개">${icon('hand')}${r.cheers}</span>`:''}</small></div>${r.mine?'':`<button class="cheer${r.on?' on':''}" data-cheer="${esc(r.id)}" aria-pressed="${r.on}">${r.on?icon('check')+'응원함':icon('hand')+'하이파이브'}</button>`}</div>`).join('');}
 async function openMember(uid){const p=D.players.find(x=>x.id===uid);if(!p)return;
- const head=`<div class="mhead"><span class="face" style="--c:${ccol(p.cls)}">${p.me?'나':esc(ini(p.name))}</span><div><h2>${esc(p.name)}${p.me?' (나)':''}</h2><small>${esc(cname(p.cls))}반 · 누적 ${rv(p.distance)} · 인증일 ${p.days}일</small></div></div>`;
+ const head=`<div class="mhead"><span class="face${AV()?' av':''}" style="--c:${ccol(p.cls)}">${faceIn(p.id,p.cls,p.me?'나':esc(ini(p.name)),56)}</span><div><h2>${esc(p.name)}${p.me?' (나)':''}</h2><small>${esc(cname(p.cls))}반 · 누적 ${rv(p.distance)} · 인증일 ${p.days}일</small></div></div>`;
  S.mem={uid,name:p.name,rows:[]};sheet(`${head}<div class="mlist" data-mlist><p class="note">기록을 불러오는 중이에요.</p></div>`);
  try{const rows=await API.memberRuns(uid);if(!S.mem||S.mem.uid!==uid)return;
   S.mem.rows=rows.map(r=>({id:r.run_id,user:r.user_id,name:r.nickname,date:r.run_date,km:r.distance_m/1000,duration:r.duration_s,pace:r.pace_s||null,kind:r.kind,cheers:+r.cheer_count||0,on:!!r.cheered_by_me,mine:!!r.is_mine}));
@@ -573,9 +702,9 @@ function ranking(){
  const rows=[...D.players].sort((a,b)=>b[key]-a[key]||a.name.localeCompare(b.name,'ko')).map((p,i)=>{if(p[key]!==prev)rank=i+1;prev=p[key];return {...p,rank};});
  if(!rows.length)return head+emptyCard('trophy','아직 레이스에 참가한 러너가 없어요','가입이 승인되면 여기에 함께 보여요.');
  const me=rows.find(r=>r.me),above=me?rows.filter(r=>r[key]>me[key]).sort((a,b)=>a[key]-b[key])[0]:null,top=rows.slice(0,3);
- const face=p=>`<span class="face" style="--c:${ccol(p.cls)}">${p.me?'나':esc(ini(p.name))}<span class="medal" style="--m:${MEDAL[p.rank-1]||'var(--silver)'}">${p.rank}</span></span>`;
+ const face=p=>`<span class="face${AV()?' av':''}" style="--c:${ccol(p.cls)}">${faceIn(p.id,p.cls,p.me?'나':esc(ini(p.name)),p.rank===1?68:56)}<span class="medal" style="--m:${MEDAL[p.rank-1]||'var(--silver)'}">${p.rank}</span></span>`;
  return `${head}<div class="podium">${[top[1],top[0],top[2]].map(p=>p?`<button class="pod p${Math.min(3,p.rank)}" data-member="${esc(p.id)}">${face(p)}<strong>${esc(p.name)}</strong><small><span class="class-dot" style="--c:${ccol(p.cls)}"></span>${esc(cname(p.cls))}반</small><div class="block${TIME()&&key==='distance'?' hm':''}">${TIME()&&key==='distance'?hmv(p[key],'<br>'):`${fmt(p[key])}<span>${unit}</span>`}</div></button>`:'<div class="pod"></div>').join('')}</div>
- ${rows.length>3?`<section class="card" style="padding:8px">${rows.slice(3).map(p=>`<button class="rrow${p.me?' me':''}" data-member="${esc(p.id)}" aria-label="${esc(p.name)}님 기록 보기"><span class="rk">${p.rank}</span><span class="face" style="--c:${ccol(p.cls)}">${p.me?'나':esc(ini(p.name))}</span><div><strong>${esc(p.name)}${p.me?' (나)':''}</strong><small><span class="class-dot" style="--c:${ccol(p.cls)}"></span>${esc(cname(p.cls))}반</small></div><span class="val">${TIME()&&key==='distance'?hmv(p[key]):`${fmt(p[key])}<small>${unit}</small>`}</span></button>`).join('')}</section>`:''}
+ ${rows.length>3?`<section class="card" style="padding:8px">${rows.slice(3).map(p=>`<button class="rrow${p.me?' me':''}" data-member="${esc(p.id)}" aria-label="${esc(p.name)}님 기록 보기"><span class="rk">${p.rank}</span><span class="face${AV()?' av':''}" style="--c:${ccol(p.cls)}">${faceIn(p.id,p.cls,p.me?'나':esc(ini(p.name)),40)}</span><div><strong>${esc(p.name)}${p.me?' (나)':''}</strong><small><span class="class-dot" style="--c:${ccol(p.cls)}"></span>${esc(cname(p.cls))}반</small></div><span class="val">${TIME()&&key==='distance'?hmv(p[key]):`${fmt(p[key])}<small>${unit}</small>`}</span></button>`).join('')}</section>`:''}
  ${me?`<div class="mybar"><b>${me.rank}위</b><p>${label} ${kv(key,me[key],unit)}<small>${above?`${esc(above.name)}님까지 ${kv(key,above[key]-me[key],unit)} 남았어요`:rows.filter(r=>r.rank===1).length>1?'공동 1위예요':'1위를 지키고 있어요'}</small></p>${icon('up')}</div>`:''}
  <p class="note">이름을 누르면 그 러너의 기록을 보고 하이파이브를 보낼 수 있어요. 공동 기록은 같은 순위예요.</p>`;
 }
@@ -585,6 +714,7 @@ function me(){
  const L=lvInfo(),G=g(),b=badges();
  return `<div class="page-title"><small>마이 페이지</small><h1>나의 러닝</h1></div>
  <section class="profile">${tierBadge(L.lv,72)}<h2>${esc(D.me.nickname)}</h2><p class="sub">${L.tier[1]} 티어 · Lv.${L.lv} · ${esc(cname(D.me.class_id))}반</p><div class="stats4"><div><b${TIME()?' class="hm"':''}>${TIME()?hmv(G.totalM/3600,'<br>'):fmt(G.totalM/1000)}</b><small>${TIME()?'누적 시간':'누적 k'}</small></div><div><b>${G.cert.length}</b><small>인증일</small></div><div><b>${G.best}</b><small>최장 연속</small></div><div><b>${b.filter(x=>x.got).length}</b><small>배지</small></div></div></section>
+ ${AV()?`<button class="look-card" data-act="look"><span class="lk-face">${faceSvg(D.me.id,D.me.class_id,48)}</span><span class="sc-t"><strong>캐릭터 꾸미기</strong><small>${lookOf(D.me.id)?'순위와 트랙에 이 모습으로 보여요':'모자·머리·표정을 골라 나만의 러너를 만들어요'}</small></span>${icon('chev')}</button>`:''}
  ${isStaff()?staffCard():''}
  <div class="tabs" role="tablist">${[['log','나의 기록'],['badge','배지 컬렉션']].map(([id,l])=>`<button role="tab" aria-selected="${S.meTab===id}" class="${S.meTab===id?'on':''}" data-metab="${id}">${l}</button>`).join('')}</div>
  ${S.meTab==='log'?logTab():badgeTab(b)}
@@ -680,12 +810,17 @@ const viewError=()=>`<div class="gate"><div class="gate-ico">${icon('alert')}</d
 let trackLoad=null;
 // 오늘 기록을 인증한 우리 반 친구들(나 빼고, 사람마다 가장 최근 기록 하나). 트랙에서 하이파이브하면 기존 응원으로 들어가요.
 function trackGhosts(){const seen=new Set(),pc={};D.players.forEach(p=>pc[p.id]=p.cls);
- return D.feed.filter(f=>f.date===D.today&&!f.mine).filter(f=>!seen.has(f.user)&&seen.add(f.user)).map(f=>({runId:f.id,id:f.user,name:f.name,cls:pc[f.user]||D.me.class_id,km:f.km,cheered:f.on}));}
+ return D.feed.filter(f=>f.date===D.today&&!f.mine).filter(f=>!seen.has(f.user)&&seen.add(f.user)).map(f=>({runId:f.id,id:f.user,name:f.name,cls:pc[f.user]||D.me.class_id,km:f.km,cheered:f.on,look:lookOf(f.user)}));}
 function trackCard(){const g=trackGhosts(),left=g.filter(x=>!x.cheered).length;
  const t=g.length?(left?`오늘 우리 반 ${g.length}명이 달렸어요 · 하이파이브 ${left}명 남음`:`오늘 달린 ${g.length}명 모두에게 하이파이브했어요`):'오늘은 아직 아무도 안 달렸어요. 첫 주자가 되어 볼까요?';
  return `<button class="infocard trackcard" data-act="track" aria-label="온라인 트랙 들어가기"><span class="crew-av blue">${icon('track')}</span><div><strong>온라인 트랙</strong><small>${t}</small></div><span class="go">${icon('chev')}</span></button>`;}
 function ensureTrack(){if(window.BKTrack&&window.THREE)return Promise.resolve(true);if(!window.BK_TRACK_SRC)return Promise.resolve(false);
  if(!trackLoad)trackLoad=new Promise(ok=>{const s=document.createElement('script');s.src=window.BK_TRACK_SRC;s.async=true;s.onload=()=>ok(!!window.BKTrack);s.onerror=()=>{trackLoad=null;ok(false);};document.head.appendChild(s);});return trackLoad;}
+// 온라인 트랙 보너스 XP(0011): quest_claims 줄(t_enter, t_five)로 저장돼 my_claims로 합산돼요. t_five는 하루 한 줄이라 같은 줄을 갱신해요.
+function addTrackXp(r){if(!r||!(r.xp>0))return false;const c=D.claims.find(x=>x.q===r.quest_id&&x.p===r.period_key);
+ if(c)c.xp=+r.total||c.xp+r.xp;else D.claims.push({q:r.quest_id,p:r.period_key,xp:+r.total||r.xp});touch();return true;}
+const ranToday=()=>D.runs.some(r=>r.date===D.today&&(r.status==='pending'||r.status==='approved'));
+const tToast=(t,hi)=>{try{window.BKTrack.toast&&window.BKTrack.toast(t,hi);}catch(_){}};
 // 트랙 안 하이파이브 = 응원(toggle_cheer). 이미 응원한 기록은 취소되지 않게 다시 보내지 않아요.
 async function trackCheer(runId){const f=D.feed.find(x=>x.id===runId);if(!f)throw new Error('기록을 찾을 수 없어요');if(f.on)return {already:true};
  const r=await API.cheer(runId);f.on=!!r.cheered;f.cheers=+r.count||0;D.cheers=D.cheers.filter(c=>c.run!==runId);if(r.cheered)D.cheers.unshift({run:runId,date:D.today});touch();
@@ -694,9 +829,12 @@ async function trackCheer(runId){const f=D.feed.find(x=>x.id===runId);if(!f)thro
 async function openTrack(b){if(S.trackOpen)return;b.disabled=true;const ok=await ensureTrack();if(b.isConnected)b.disabled=false;
  if(!ok)return toast('온라인 트랙을 불러오지 못했어요. 잠시 뒤 다시 해 주세요');
  closeSheet();
- try{S.trackOpen=true;window.BKTrack.open({me:{id:D.me.id,name:D.me.nickname,cls:D.me.class_id},classes:D.classList.map(c=>({id:c.id,name:c.name,color:col(c.color)})),sb:LIVE?sb:null,
-  ghosts:trackGhosts(),onFive:id=>trackCheer(id).then(r=>{if(r&&r.cheered)snd('cheer');return r;}).catch(e=>{if(authLost(e))sessionLost();throw new Error(errMsg(e));}),
-  onClose(){S.trackOpen=false;if(S.view==='app'){render(true);progress();}}});}
+ try{S.trackOpen=true;window.BKTrack.open({me:{id:D.me.id,name:D.me.nickname,cls:D.me.class_id,look:lookOf(D.me.id)},onLook:l=>saveLook(l,true),classes:D.classList.map(c=>({id:c.id,name:c.name,color:col(c.color)})),sb:LIVE?sb:null,
+  ghosts:trackGhosts(),onFive:id=>trackCheer(id).then(r=>{if(r&&r.cheered){snd('cheer');
+    if(D.me.is_runner)API.trackXp('five').then(x=>{if(addTrackXp(x))tToast(`하이파이브 +1 XP · 오늘 ${x.total}/5`,true);}).catch(()=>{});}
+   return r;}).catch(e=>{if(authLost(e))sessionLost();throw new Error(errMsg(e));}),
+  onClose(){S.trackOpen=false;if(S.view==='app'){render(true);progress();}}});
+  if(D.me.is_runner&&ranToday())API.trackXp('enter').then(r=>{if(addTrackXp(r))tToast(`오늘 인증하고 트랙에 왔어요 · +${r.xp} XP`,true);}).catch(()=>{});}
  catch(_){S.trackOpen=false;toast('이 기기에서는 3D 화면을 열 수 없어요');}}
 
 /* ===== 렌더·네비 ===== */
@@ -940,7 +1078,7 @@ async function doSignup(form){const v=Object.fromEntries(new FormData(form)),err
 async function logout(btn){try{await API.logout();}catch(_){}D=null;S.seen=null;S.page='home';S.admin={tab:'queue',queue:null,recent:null,members:null,settings:null,loading:false,at:0};S.photo={};S.authMode='login';closeSheet();if(LIVE){S.view='auth';render();}else location.reload();}
 function sessionLost(){if(!LIVE)return;D=null;S.view='auth';S.authMode='login';closeSheet();render();toast('로그인이 만료됐어요. 다시 로그인해 주세요.');}
 async function loadData(quiet){
- try{const j=await API.boot();applyBoot(j);
+ try{const [j,lk]=await Promise.all([API.boot(),API.looks?API.looks().catch(()=>null):null]);applyBoot(j);if(lk)S.looks=Object.fromEntries(lk.map(x=>[x.user_id,x.look]));
   if(!LIVE&&!DB.seeded){DB.seeded=true;for(const {q,p} of pastRewards())if(!(q.id==='d_5k'&&p==='2026-10-14'))DB.my_claims.push({quest_id:q.id,period_key:p,xp:q.xp});applyBoot(await API.boot());}
   if(!D.me){S.view='gate';S.gate='noprofile';}else if(D.me.status!=='active'){S.view='gate';S.gate=D.me.status;}
   else{const was=S.view;S.view='app';if(!S.seen)initSeen();if(S.page==='admin'&&!isStaff())S.page='me';if(was!=='app'&&isStaff())refreshQueue();}
@@ -987,6 +1125,8 @@ document.addEventListener('click',e=>{
   case 'quests-more':S.qOpen=!S.qOpen;return render(true);
   case 'logout':return logout(b);
   case 'pw':return pwSheet();
+  case 'look':return lookSheet();
+  case 'look-save':return lookSave(b);
   case 'snd':{const k=b.dataset.k,v=!BKSound.get()[k];BKSound.set({[k]:v});b.setAttribute('aria-checked',v);if(v&&k==='sfx')snd('on');return;}
   case 'to-signup':S.authMode='signup';render();return loadClasses();
   case 'to-login':S.authMode='login';return render();

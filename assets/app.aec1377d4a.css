@@ -470,4 +470,10 @@ button.crew-av{flex-shrink:0}
 .nav button{position:relative}
 .nav .ndot{position:absolute;top:9px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 2px var(--navy)}
 .staff-card.todo{box-shadow:var(--shadow),inset 0 0 0 1.5px var(--danger)}
+/* 11-04 캐릭터 얼굴(avatar.js) */
+.face svg,.crew-av svg,.avatar svg,.lk-face svg{width:100%;height:100%;display:block}
+.face:has(>svg),.crew-av:has(>svg),.avatar:has(>svg){overflow:visible}
+.look-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);margin-top:12px}
+.look-card .sc-t{flex:1;min-width:0}.look-card strong{display:block;font-size:16px;font-weight:700}.look-card small{display:block;font-size:13px;color:var(--muted)}.look-card>.i{color:var(--subtle)}
+.look-card .lk-face{width:48px;height:48px;flex-shrink:0;display:block}
 @font-face{font-family:'BK Sans';src:url(bksans.496242c27f.woff2) format('woff2');font-weight:100 900;font-style:normal;font-display:swap}

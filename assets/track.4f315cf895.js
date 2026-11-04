@@ -35,21 +35,20 @@ const CSS=`
 .bkt .bkt-circ{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
 .bkt .bkt-room{height:44px;border-radius:22px;padding:0 14px;white-space:nowrap;display:flex;align-items:center;font-size:15px;font-weight:800}
 .bkt .bkt-bar{height:44px;border-radius:22px;display:flex;align-items:center;gap:6px;padding:0 14px;font-weight:800}
-.bkt .bkt-stat{position:absolute;right:12px;top:calc(66px + env(safe-area-inset-top));border-radius:18px;padding:10px 14px;min-width:150px}
+.bkt .bkt-side{position:absolute;right:12px;top:calc(66px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.bkt .bkt-stat{border-radius:16px;padding:8px 12px}
 .bkt .bkt-stat small{display:block;font-size:13px;color:#c5ccd8}
-.bkt .bkt-stat .bkt-n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.bkt .bkt-stat .bkt-n{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
 .bkt .bkt-row{display:flex;gap:14px}
 .bkt .bkt-pace{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(214px + env(safe-area-inset-bottom));font-size:34px;font-weight:800;letter-spacing:-.03em;color:#cdf564;text-shadow:0 2px 10px rgba(0,0,0,.55);white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;transition:opacity .3s}
 .bkt .bkt-pace small{font-size:16px;margin-left:4px;color:#fff}
-.bkt .bkt-heat{height:5px;margin:8px 0 6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
-.bkt .bkt-heat i{display:block;height:100%;width:0;background:#cdf564;transition:width .6s}
-.bkt .bkt-tag{position:absolute;left:12px;top:calc(68px + env(safe-area-inset-top));font-size:13px;color:#d3dae6;padding:5px 11px;border-radius:999px;max-width:calc(100% - 252px)}
+.bkt .bkt-tag{position:absolute;left:12px;top:calc(68px + env(safe-area-inset-top));z-index:1;font-size:13px;color:#d3dae6;padding:5px 11px;border-radius:999px;max-width:calc(100% - 252px)}
 .bkt.bkt-over .bkt-lane,.bkt.bkt-over .bkt-say,.bkt.bkt-over .bkt-ctx,.bkt.bkt-over .bkt-stat{display:none!important}
-.bkt .bkt-map{position:absolute;right:12px;top:calc(158px + env(safe-area-inset-top));width:172px;height:100px;border-radius:16px;padding:0;overflow:hidden}
+.bkt .bkt-map{position:relative;width:150px;height:88px;border-radius:16px;padding:0;overflow:hidden}
 .bkt .bkt-map canvas{width:100%;height:100%;touch-action:manipulation}
 .bkt .bkt-map span{position:absolute;left:0;right:0;bottom:50%;transform:translateY(50%);text-align:center;font-size:11px;color:#dfe5ee;pointer-events:none}
-.bkt .bkt-toasts{position:absolute;left:0;right:0;top:calc(268px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
-.bkt .bkt-toast{border-radius:999px;padding:10px 18px;font-size:16px;max-width:90%;text-align:center;transition:opacity .5s;background:rgba(18,22,30,.72)}
+.bkt .bkt-toasts{position:absolute;left:0;right:0;bottom:calc(262px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.bkt .bkt-toast{border-radius:999px;padding:8px 16px;font-size:15px;max-width:86%;text-align:center;transition:opacity .5s;background:rgba(18,22,30,.72)}
 .bkt .bkt-toast.hide{opacity:0}
 .bkt .bkt-toast.hi{background:rgba(205,245,100,.94);color:#1c2a05;font-weight:700}
 .bkt .bkt-bottom{position:absolute;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));border-radius:28px;padding:10px;display:flex;gap:6px}
@@ -73,6 +72,7 @@ const CSS=`
 .bkt .bkt-sw button{width:36px;height:36px;padding:0;border:2px solid rgba(255,255,255,.3)}
 .bkt .bkt-who-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.08)}
 .bkt .bkt-who-row:first-of-type{border-top:0}
+.bkt .bkt-who-row .av{flex-shrink:0;display:flex}
 .bkt .bkt-who-row .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
 .bkt .bkt-who-row .nm{flex:1;min-width:0;text-align:left;font-size:16px;font-weight:700;color:#fff}
 .bkt .bkt-who-row .nm small{display:block;font-size:13px;font-weight:500;color:#aab3c2}
@@ -90,9 +90,8 @@ const HUD=`<div class="bkt-wrap"><canvas></canvas>
   <button class="bkt-circ bkt-g" data-k="cam" aria-label="카메라 각도 바꾸기">${ic('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>')}</button>
   <button class="bkt-bar bkt-g" data-k="who" aria-label="트랙에 있는 사람 보기">${ic('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2a3 3 0 0 1 0 5.6M18 14.2c1.8.8 3 2.7 3 4.8"/>')}<span data-k="cnt">1</span></button>
  </div>
- <div class="bkt-stat bkt-g"><div class="bkt-row"><div><small>함께 달린 시간</small><span class="bkt-n" data-k="tm">00:00</span></div><div><small>바퀴</small><span class="bkt-n" data-k="lp">0.0</span></div><div><small>페이스</small><span class="bkt-n" data-k="pc">--</span></div></div>
-  <div class="bkt-heat"><i data-k="heat"></i></div><small data-k="heatTxt">몸 데우는 중</small></div>
- <button class="bkt-map bkt-g" data-k="map" aria-label="트랙 전체 보기"><canvas data-k="mapC"></canvas><span data-k="mapT">눌러서 전체 보기</span></button>
+ <div class="bkt-side"><div class="bkt-stat bkt-g"><div class="bkt-row"><div><small>함께 달린 시간</small><span class="bkt-n" data-k="tm">00:00</span></div><div><small>바퀴</small><span class="bkt-n" data-k="lp">0.0</span></div><div><small>페이스</small><span class="bkt-n" data-k="pc">--</span></div></div></div>
+ <button class="bkt-map bkt-g" data-k="map" aria-label="트랙 전체 보기"><canvas data-k="mapC"></canvas><span data-k="mapT">눌러서 전체 보기</span></button></div>
  <div class="bkt-tag bkt-g" data-k="tag" hidden></div>
  <div class="bkt-pace" data-k="pace" style="opacity:0" aria-hidden="true"></div>
  <div class="bkt-toasts" data-k="toasts" aria-live="polite"></div>
@@ -104,10 +103,8 @@ const HUD=`<div class="bkt-wrap"><canvas></canvas>
  <div class="bkt-sh" data-k="sheet" hidden><button class="bkt-x" data-k="sheetX" aria-label="닫기">${XI}</button>
   <h3>한마디 하기</h3><p>러너끼리만 아는 그 말. 누르면 내 머리 위에 말풍선으로 떠요.</p><div data-k="phr"></div></div>
  <div class="bkt-sh" data-k="dressSh" hidden><button class="bkt-x" data-k="dressX" aria-label="닫기">${XI}</button>
-  <h3>꾸미기</h3><p>고르면 바로 내 러너에게 씌워져요. 다른 사람에게도 이렇게 보여요.</p>
-  <div class="bkt-cat">머리 액세서리</div><div class="bkt-chips" data-k="hatC"></div>
-  <div class="bkt-cat">색</div><div class="bkt-chips bkt-sw" data-k="colC"></div>
-  <div class="bkt-cat">표정</div><div class="bkt-chips" data-k="faceC"></div></div>
+  <h3>내 캐릭터 꾸미기</h3><p>고르면 바로 내 러너에게 입혀져요. 앱 프로필도 같은 모습으로 바뀌어요.</p>
+  <div data-k="dressEd"></div></div>
  <div class="bkt-sh" data-k="whoSh" hidden><button class="bkt-x" data-k="whoX" aria-label="닫기">${XI}</button>
   <h3>트랙에 있는 사람</h3><p>이름을 누르면 그 사람 쪽으로 화면이 가요.</p><div data-k="whoList"></div></div>
  <div class="bkt-bottom bkt-g" data-k="acts">
@@ -123,6 +120,7 @@ let cur=null;
 window.BKTrack={
  open(o){if(cur)return cur;if(!window.THREE)throw new Error('three.js가 없어요');cur=start(o||{});return cur;},
  close(){if(cur)cur.close();},
+ toast(t,hi){if(cur&&cur.toast)cur.toast(String(t),!!hi);},// 앱이 트랙 안에 알림을 띄울 때(예: +3 XP)
  get isOpen(){return !!cur;}
 };
 
@@ -200,7 +198,7 @@ const CLASSES=(opts.classes&&opts.classes.length?opts.classes:[{id:'hanam',name:
 const CL={};CLASSES.forEach(c=>CL[c.id]=c.color);const ccol=id=>CL[id]??0x8a94a6;
 
 // ── 캐릭터(동글한 장난감 느낌) ──
-const skinM=mat(0xf8d3b0,{roughness:.55,emissive:0x5a3420,emissiveIntensity:.35}),eyeM=new T.MeshStandardMaterial({color:0x231a17,roughness:.25}),hiM=new T.MeshBasicMaterial({color:0xffffff}),blushM=new T.MeshBasicMaterial({color:0xff8fa3,transparent:true,opacity:.55}),mouthM=new T.MeshBasicMaterial({color:0x7a3a2e}),tongueM=new T.MeshBasicMaterial({color:0xff7a8a}),sweatM=new T.MeshStandardMaterial({color:0x9ad7ff,roughness:.1,transparent:true,opacity:.85}),dripM=new T.MeshStandardMaterial({color:0x5cc6ff,roughness:.05,emissive:0x1a6fb0,emissiveIntensity:.45}),lensM=new T.MeshStandardMaterial({color:0x2a3f6e,roughness:.05,metalness:.7,emissive:0x0d1a33}),shoeM=mat(0xf6f7fb),pantM=mat(0x2a3346),hairM=mat(0x3a2a22,{roughness:.7});
+const skinMs={},hairMs={},skinOf=c=>skinMs[c]||(skinMs[c]=mat(c,{roughness:.55,emissive:0x5a3420,emissiveIntensity:.35})),hairOf=c=>hairMs[c]||(hairMs[c]=mat(c,{roughness:.7})),skinM=skinOf(0xf8d3b0),eyeM=new T.MeshStandardMaterial({color:0x231a17,roughness:.25}),hiM=new T.MeshBasicMaterial({color:0xffffff}),blushM=new T.MeshBasicMaterial({color:0xff8fa3,transparent:true,opacity:.55}),mouthM=new T.MeshBasicMaterial({color:0x7a3a2e}),tongueM=new T.MeshBasicMaterial({color:0xff7a8a}),sweatM=new T.MeshStandardMaterial({color:0x9ad7ff,roughness:.1,transparent:true,opacity:.85}),dripM=new T.MeshStandardMaterial({color:0x5cc6ff,roughness:.05,emissive:0x1a6fb0,emissiveIntensity:.45}),lensM=new T.MeshStandardMaterial({color:0x2a3f6e,roughness:.05,metalness:.7,emissive:0x0d1a33}),shoeM=mat(0xf6f7fb),pantM=mat(0x2a3346);
 const G={head:new T.SphereGeometry(.62,28,20),body:new T.CapsuleGeometry(.4,.42,8,16),limb:new T.CapsuleGeometry(.13,.34,6,10),arm:new T.CapsuleGeometry(.11,.28,6,10),
  shoe:new T.BoxGeometry(.26,.16,.42),hair:new T.SphereGeometry(.64,24,14,0,Math.PI*2,0,Math.PI*.5),cap:new T.SphereGeometry(.66,24,12,0,Math.PI*2,0,Math.PI*.42),
  shorts:new T.CylinderGeometry(.42,.44,.32,16),hand:new T.SphereGeometry(.13,12,8),band:new T.TorusGeometry(.6,.07,8,24),eye:new T.SphereGeometry(.085,14,10),hi:new T.SphereGeometry(.028,8,6),blush:new T.SphereGeometry(.1,12,8),smile:new T.TorusGeometry(.075,.022,6,14,Math.PI),happy:new T.TorusGeometry(.075,.026,6,14,Math.PI),bang:new T.SphereGeometry(.3,14,10),tail:new T.SphereGeometry(.24,14,10),brow:new T.BoxGeometry(.17,.035,.03),grin:new T.SphereGeometry(.13,16,10,0,Math.PI*2,Math.PI/2,Math.PI/2),line:new T.BoxGeometry(.14,.025,.02),band2:new T.TorusGeometry(.63,.08,8,24),beanie:new T.SphereGeometry(.7,24,14,0,Math.PI*2,0,Math.PI*.47),rim:new T.TorusGeometry(.66,.1,10,28),pom:new T.SphereGeometry(.18,14,10),lens:new T.SphereGeometry(.16,16,10),bar:new T.BoxGeometry(.2,.03,.03),disc:new T.SphereGeometry(.5,24,12),cone:new T.ConeGeometry(.075,.16,14),ear:new T.SphereGeometry(.13,10,8)};
@@ -210,26 +208,24 @@ function label(text,me){const c=document.createElement('canvas'),x=c.getContext(
  x.fillStyle=me?'#cdf564':'rgba(16,20,28,.66)';x.beginPath();x.roundRect(2,4,w-4,64,32);x.fill();
  x.fillStyle=me?'#1c2a05':'#fff';x.textBaseline='middle';x.fillText(text,22,38);
  const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
- const sp=new T.Sprite(new T.SpriteMaterial({map:tx,depthWrite:false,transparent:true}));sp.scale.set(w/72*.62,.62,1);sp.position.y=3.95;sp.renderOrder=5;return sp;}
+ const sp=new T.Sprite(new T.SpriteMaterial({map:tx,depthWrite:false,transparent:true}));sp.scale.set(w/72*.4,.4,1);sp.position.y=3.75;sp.renderOrder=5;return sp;}
 function dropSprite(sp){if(!sp)return;sp.parent&&sp.parent.remove(sp);sp.material.map&&sp.material.map.dispose();sp.material.dispose();}
-function avatar(o){const root=new T.Group(),pel=new T.Group(),tor=new T.Group();root.add(pel);pel.add(tor);
+function avatar(o){const root=new T.Group(),pel=new T.Group(),tor=new T.Group();root.add(pel);pel.add(tor);const skins=[];const sk=m=>(skins.push(m),m);
  const shirt=mat(ccol(o.cls),{roughness:.7});
  pel.add(mk(G.shorts,pantM,0));
  const legs=[-1,1].map(sd=>{const hip=new T.Group();hip.position.set(sd*.2,-.05,0);const th=mk(G.limb,pantM,-.3);const knee=new T.Group();knee.position.y=-.6;
-  const shn=mk(G.limb,skinM,-.3);const shoe=mk(G.shoe,shoeM,-.62);shoe.position.z=.08;knee.add(shn,shoe);hip.add(th,knee);pel.add(hip);return{hip,knee};});
+  const shn=sk(mk(G.limb,skinM,-.3));const shoe=mk(G.shoe,shoeM,-.62);shoe.position.z=.08;knee.add(shn,shoe);hip.add(th,knee);pel.add(hip);return{hip,knee};});
  const body=mk(G.body,shirt,.5);body.scale.set(1.05,.88,.85);tor.add(body);
- const head=new T.Group();head.position.y=1.66;head.scale.setScalar(1.16);head.add(mk(G.head,skinM,0));
+ const head=new T.Group();head.position.y=1.66;head.scale.setScalar(1.16);head.add(sk(mk(G.head,skinM,0)));
  const face=new T.Group();head.add(face);const FC=buildFace(face);
- [-1,1].forEach(sd=>{const ea=mk(G.ear,skinM,-.08);ea.position.x=sd*.6;ea.scale.set(.6,1,.8);head.add(ea);});
- const hr=mk(G.hair,hairM,.08);hr.rotation.x=-.28;head.add(hr);
- if(o.bang){const bg=mk(G.bang,hairM,.36);bg.position.z=.36;bg.scale.set(1.5,.55,.6);head.add(bg);}
- if(o.tail){const tl=mk(G.tail,hairM,.15);tl.position.z=-.62;head.add(tl);}
+ [-1,1].forEach(sd=>{const ea=sk(mk(G.ear,skinM,-.08));ea.position.x=sd*.6;ea.scale.set(.6,1,.8);head.add(ea);});
+ const hairG=new T.Group();head.add(hairG);
  const hat=new T.Group();head.add(hat);
  tor.add(head);
  const arms=[-1,1].map(sd=>{const sho=new T.Group();sho.position.set(sd*.47,.88,0);const up=mk(G.arm,shirt,-.22);const el=new T.Group();el.position.y=-.46;
-  const fa=mk(G.arm,skinM,-.2),hd=mk(G.hand,skinM,-.43);hd.scale.setScalar(1.25);el.add(fa,hd);sho.add(up,el);tor.add(sho);return{sho,el};});
+  const fa=sk(mk(G.arm,skinM,-.2)),hd=sk(mk(G.hand,skinM,-.43));hd.scale.setScalar(1.25);el.add(fa,hd);sho.add(up,el);tor.add(sho);return{sho,el};});
  const lb=label(o.me?'나':o.n,o.me);root.add(lb);
- S.add(root);const av={root,pel,tor,legs,arms,head,lb,FC,hat,shirt,blink:2+Math.random()*3,cur:''};setHat(av,o.hat,o.hatC);return av;}
+ S.add(root);const av={root,pel,tor,legs,arms,head,lb,FC,hat,hairG,skins,shirt,blink:2+Math.random()*3,cur:''};setLook(av,o.look,o.cls);return av;}
 // 표정 부품: 이름별로 켜고 꺼요
 function buildFace(face){const Pt={};const g=n=>{const x=new T.Group();face.add(x);Pt[n]=x;return x;};
  const eyes=g('eyes'),happy=g('happy'),tired=g('tired'),dots=g('dots'),brows=g('brows');
@@ -253,22 +249,40 @@ const FACES={기본:['eyes','smile','blush-1','blush1'],웃음:['happy','smile',
 function setFace(av,name){if(av.cur===name)return;av.cur=name;const on=new Set(FACES[name]);Object.entries(av.FC).forEach(([kk,g])=>g.visible=on.has(kk));}
 // 머리 액세서리
 const accM={};const am=c=>accM[c]||(accM[c]=mat(c,{roughness:.6}));
-const HATS=['없음','러닝캡','선캡','헤어밴드','비니','선글라스'];
+const HATS=['없음','러닝캡','선캡','헤어밴드','비니','고글'];
+const gogM=new T.MeshStandardMaterial({color:0x5b8cff,roughness:.1,metalness:.25,emissive:0x4a2a9a,emissiveIntensity:.55,side:T.DoubleSide}),gogG={lens:new T.CylinderGeometry(.665,.665,.27,28,1,true,-.95,1.9),frame:new T.CylinderGeometry(.648,.648,.36,28,1,true,-1.02,2.04)};
 function setHat(av,kind,c){const h=av.hat;while(h.children.length)h.remove(h.children[0]);const m=am(c);
  if(kind==='러닝캡'){const cp=mk(G.cap,m,.1);cp.rotation.x=-.22;const br=mk(G.disc,m,.24);br.scale.set(.9,.08,.75);br.position.z=.46;br.rotation.x=.22;const bt=mk(G.hi,m,.76);bt.scale.setScalar(2.2);h.add(cp,br,bt);}
  else if(kind==='선캡'){const bd=mk(G.band2,m,.24);bd.rotation.x=Math.PI/2+.25;const br=mk(G.disc,m,.2);br.scale.set(1.05,.09,.8);br.position.z=.5;br.rotation.x=.28;h.add(bd,br);}
  else if(kind==='헤어밴드'){const bd=mk(G.band,m,.24);bd.rotation.x=Math.PI/2+.25;h.add(bd);}
  else if(kind==='비니'){const dm=mk(G.beanie,m,.02);dm.rotation.x=-.12;const rim=mk(G.rim,m,.2);rim.rotation.x=Math.PI/2-.12;const pom=mk(G.pom,am(0xffffff),.82);pom.position.z=-.08;h.add(dm,rim,pom);}
- else if(kind==='선글라스'){[-1,1].forEach(sd=>{const l=mk(G.lens,lensM,.3);l.position.set(sd*.22,.3,.53);l.rotation.x=-.5;l.scale.set(1.25,.85,.35);h.add(l);});
-  const bar=mk(G.bar,m,.36);bar.scale.set(2.6,1.6,1.6);bar.position.set(0,.36,.56);bar.rotation.x=-.5;h.add(bar);[-1,1].forEach(sd=>{const arm=mk(G.bar,m,.33);arm.scale.set(.4,1.4,9);arm.position.set(sd*.5,.33,.3);h.add(arm);});}}
+ else if(kind==='고글'){// 눈에 맞게 쓰는 스포츠 고글: 머리를 두르는 끈 + 반 색 테 + 빛나는 렌즈
+  const fr=new T.Mesh(gogG.frame,am(c));fr.position.y=-.06;fr.material.side=T.DoubleSide;const ln=new T.Mesh(gogG.lens,gogM);ln.position.y=-.06;
+  const st=mk(G.band,am(dk(c)),-.06);st.rotation.x=Math.PI/2;st.scale.set(1.04,1.04,.55);
+  const gl=new T.Mesh(G.hi,hiM);gl.scale.set(3.2,.9,.5);gl.position.set(-.22,-.01,.655);gl.rotation.z=.35;const gl2=gl.clone();gl2.scale.set(1.4,.7,.5);gl2.position.set(-.12,-.08,.66);
+  h.add(st,fr,ln,gl,gl2);}}
+const dk=c=>{const f=s=>Math.round(((c>>s)&255)*.72);return (f(16)<<16)|(f(8)<<8)|f(0);};
+
+// 캐릭터 모습(look): 앱 프로필과 같은 값이에요. BKAvatar(avatar.js)가 있으면 그걸로 빈칸을 채워요.
+const AV=window.BKAvatar||null;
+const LDEF={v:1,hat:'러닝캡',hatC:'',face:'기본',hair:'앞머리',hairC:'갈색',skin:'보통'};
+const normLook=l=>AV?AV.normalize(l):{...LDEF,...(l&&typeof l==='object'?l:{})};
+const colN=(kind,name,fb)=>{const h=AV?AV.hex(kind,name):'';return /^#[0-9a-f]{6}$/i.test(h)?parseInt(h.slice(1),16):fb;};
+const lookKey=l=>[l.hat,l.hatC,l.face,l.hair,l.hairC,l.skin].join('|');
+function setHair(av,kind,c){const g=av.hairG;while(g.children.length)g.remove(g.children[0]);const m=hairOf(c);
+ const hr=mk(G.hair,m,.08);hr.rotation.x=-.28;g.add(hr);
+ if(kind==='앞머리'||kind==='앞머리묶음'){const bg=mk(G.bang,m,.36);bg.position.z=.36;bg.scale.set(1.5,.55,.6);g.add(bg);}
+ if(kind==='묶음'||kind==='앞머리묶음'){const tl=mk(G.tail,m,.15);tl.position.z=-.62;g.add(tl);}}
+function setLook(av,look,cls){const l=normLook(look);av.lk=lookKey(l);
+ const sm=skinOf(colN('skin',l.skin,0xf8d3b0));av.skins.forEach(x=>x.material=sm);
+ setHair(av,l.hair,colN('hairC',l.hairC,0x4a3226));
+ setHat(av,l.hat,l.hatC?colN('hatC',l.hatC,ccol(cls)):ccol(cls));return l;}
 
 // ── 사람들 ──
 const hash=s=>{let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0;};
-const COLS=[['반 색',null],['흰색',0xffffff],['검정',0x1b2333],['라임',0xcdf564],['하늘',0x8fd3ff],['분홍',0xff9fc0],['노랑',0xffd166]];
-const COLV=new Set(COLS.map(c=>c[1]).filter(v=>v!=null));
 let ppl=[],me=null;
 function person(o){const hh=hash(o.id);const sc=typeof over!=='undefined'&&over;
- const p={id:o.id,n:o.n,cls:o.cls,me:!!o.me,bang:hh%2===0,tail:hh%5===2,hat:o.hat||'없음',hatC:o.hatC??ccol(o.cls),face:o.face||'기본',tmpFace:null,tmpT:0,
+ const lk=normLook(o.look);const p={id:o.id,n:o.n,cls:o.cls,me:!!o.me,look:lk,face:lk.face,tmpFace:null,tmpT:0,
   s:o.s??Math.random()*P,lane:o.lane??Math.floor(Math.random()*NL),laneF:0,mode:o.mode||'run',v:0,vT:0,ph:Math.random()*6,wave:0,five:0,breathe:0,speed:o.speed||3.8};
  p.laneF=p.lane;p.av=avatar(p);if(sc)p.av.root.scale.setScalar(2.6);return p;}
 function removePerson(p){S.remove(p.av.root);dropSprite(p.av.lb);dropSprite(p.av.bub);p.av.shirt.dispose();}
@@ -327,8 +341,11 @@ function bubble(p,text){const a=p.av;if(a.bub){dropSprite(a.bub);clearTimeout(a.
 const seen=p=>p.av.root.visible&&p.av.root.position.distanceTo(camPos)<40;
 
 // ── 알림 ──
-function toast(t,hi){if(closed)return;const el=document.createElement('div');el.className='bkt-toast'+(hi?' hi':'');el.textContent=t;const box=k('toasts');box.prepend(el);
- while(box.children.length>2)box.lastChild.remove();later(()=>el.classList.add('hide'),3200);later(()=>el.remove(),3800);}
+// 알림은 한 번에 하나만, 화면 아래쪽(한마디 버튼 위)에 짧게 띄워요. 밀린 알림은 차례로 보여 줘요(최대 2개 대기).
+const tq=[];let tBusy=false;
+function toast(t,hi){if(closed)return;if(tq.some(x=>x[0]===t))return;tq.push([t,hi]);if(tq.length>2)tq.shift();if(!tBusy)nextToast();}
+function nextToast(){const it=tq.shift();if(!it||closed){tBusy=false;return;}tBusy=true;const el=document.createElement('div');el.className='bkt-toast'+(it[1]?' hi':'');el.textContent=it[0];
+ const box=k('toasts');box.replaceChildren(el);const dur=tq.length?2200:3000;later(()=>el.classList.add('hide'),dur);later(()=>{el.remove();nextToast();},dur+450);}
 function near(p,d=10){let b=null,bd=d;const q=p.av.root.position;ppl.forEach(o=>{const ds=o.av.root.position.distanceTo(q);if(o.av.root.visible!==false&&ds<bd){bd=ds;b=o;}});return b;}
 const byId=id=>ppl.find(p=>p.id===id);
 
@@ -393,10 +410,18 @@ const onUp=e=>{if(!me||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>10
 cv.addEventListener('pointerdown',onDown);cv.addEventListener('pointermove',onMove);cv.addEventListener('pointerup',onUp);addEventListener('pointerup',onUpWin);
 
 // ── 꾸미기: 이 기기에 저장 ──
+// 내 모습은 앱 프로필(서버)에 저장해요. 예전에 이 기기에만 저장한 꾸미기가 있으면 한 번만 옮겨 와요.
 const LOOK_KEY='bk:track:look:'+ME.id;
-let look={hat:'러닝캡',hatC:null,face:'기본'};
-try{const j=JSON.parse(localStorage.getItem(LOOK_KEY)||'null');if(j){if(HATS.includes(j.hat))look.hat=j.hat;if(COLV.has(j.hatC))look.hatC=j.hatC;if(FACES[j.face])look.face=j.face;}}catch(_){}
-const saveLook=()=>{try{localStorage.setItem(LOOK_KEY,JSON.stringify({hat:me.hat,hatC:COLV.has(me.hatC)?me.hatC:null,face:me.face}));}catch(_){}};
+const OLDC={16777215:'흰색',1778483:'검정',13497700:'라임',9425919:'하늘',16752576:'분홍',16765286:'노랑'};
+let look=null,migrated=false;
+if(ME.look&&typeof ME.look==='object')look=normLook(ME.look);
+else{try{const j=JSON.parse(localStorage.getItem(LOOK_KEY)||'null');if(j&&typeof j==='object'){look=normLook({hat:j.hat,hatC:j.v?j.hatC:(OLDC[j.hatC]||''),face:j.face,hair:j.hair,hairC:j.hairC,skin:j.skin});migrated=true;}}catch(_){}}
+if(!look)look=normLook(null);
+let lookPend=0;
+const saveLook=()=>{try{localStorage.setItem(LOOK_KEY,JSON.stringify(me.look));}catch(_){}
+ if(typeof opts.onLook!=='function')return;if(lookPend){clearTimeout(lookPend);timers.delete(lookPend);}
+ lookPend=later(()=>{lookPend=0;try{opts.onLook({...me.look});}catch(_){}},800);};
+function changeLook(l){const n=normLook(l);me.look=n;me.face=n.face;me.tmpT=0;setLook(me.av,n,me.cls);saveLook();sendState();}
 
 // ── 실시간(Supabase Realtime) ──
 let ch=null,subOk=false,ver=0,lastSend=0,sendPend=0,synced=false,placed=false,beatT=0,lastAct=0;
@@ -407,7 +432,7 @@ const targetV=p=>p.breathe>0||p.sit?0:p.mode==='run'?p.speed+(p===me?boost:0):1.
 // 화면 속 속도를 러닝 페이스로 바꿔 보여 줘요(기본 3.8 = 6분/km, 가장 빠르면 약 3분 10초)
 const paceTxt=v=>{if(v<.3)return '--';const t=Math.round(360*3.8/v);return `${Math.floor(t/60)}'${String(t%60).padStart(2,'0')}"`;};
 function payload(){const q=me.av.root.position;
- return {n:String(ME.name||'').slice(0,16),c:ME.cls||'',h:me.hat,hc:me.hatC,f:me.face,k:++ver,at:Date.now(),s:+(((me.s%P)+P)%P).toFixed(2),l:me.lane,m:me.mode,v:+targetV(me).toFixed(2),br:me.breathe>0?+me.breathe.toFixed(1):0,
+ return {n:String(ME.name||'').slice(0,16),c:ME.cls||'',lk:me.look,f:me.face,k:++ver,at:Date.now(),s:+(((me.s%P)+P)%P).toFixed(2),l:me.lane,m:me.mode,v:+targetV(me).toFixed(2),br:me.breathe>0?+me.breathe.toFixed(1):0,
   fr:me.free?{x:+q.x.toFixed(2),z:+q.z.toFixed(2),tx:me.tgt?+me.tgt.x.toFixed(2):+q.x.toFixed(2),tz:me.tgt?+me.tgt.z.toFixed(2):+q.z.toFixed(2),b:me.tgt&&me.tgt.bench?1:0,sit:me.sit?1:0}:null};}
 // 움직임은 broadcast('st')로 자주(0.5초 간격까지), presence(늦게 온 사람용 마지막 상태)는 드물게(10초 간격까지) 보내요.
 // presence를 자주 바꾸면 Realtime이 클라이언트를 끊어요(ClientPresenceRateLimitReached).
@@ -421,8 +446,8 @@ function sendState(force){if(!LIVE||!ch||!placed||closed)return;const now=perfor
 function emit(event,data){if(!LIVE||!ch||!subOk)return;ch.send({type:'broadcast',event,payload:{from:ME.id,...data}}).catch(()=>{});}
 function applyRemote(p,m){
  const n=String(m.n||'러너').slice(0,16);if(n!==p.n){p.n=n;dropSprite(p.av.lb);p.av.lb=label(n,false);p.av.root.add(p.av.lb);}
- const h=HATS.includes(m.h)?m.h:'없음',hc=COLV.has(m.hc)?m.hc:ccol(p.cls);if(h!==p.hat||hc!==p.hatC){p.hat=h;p.hatC=hc;setHat(p.av,h,hc);}
- p.face=FACES[m.f]?m.f:'기본';
+ const lk=normLook(m.lk&&typeof m.lk==='object'?m.lk:{hat:m.h,face:m.f});if(lookKey(lk)!==p.av.lk){p.look=lk;setLook(p.av,lk,p.cls);}
+ p.face=lk.face;
  // 같은 값이거나 더 오래된 값(presence가 broadcast보다 늦게 도착한 경우)은 건너뛰어요
  const at=num(m.at,0);if(m.k===p.k&&at===p.at)return;if(p.at&&at&&at<p.at)return;p.k=m.k;p.at=at;
  // 늦게 들어오면 최대 15초 전 값을 받으니, 보낸 시각만큼 앞으로 계산해요(기기 시계 차이를 생각해 0~20초로 제한)
@@ -454,9 +479,9 @@ function firstPlace(){if(placed)return;placed=true;
  if(runners.length&&performance.now()-joined<6000){const o=pick1(runners);me.s=((o.s-9)%P+P)%P;me.lane=me.laneF=o.lane===2?3:2;place(me);}
  introToasts();sendState(true);}
 function introToasts(){const g=ppl.filter(p=>p.runId).length,live=ppl.filter(p=>p.live).length;
- toast(g?`오늘 우리 반 ${g}명이 달렸어요. 다가가서 하이파이브해 보세요`:live?`${tod} 트랙에 들어왔어요. 함께 ${live+1}명이 달리고 있어요`:'오늘은 아직 아무도 안 달렸어요. 첫 주자가 되어 볼까요?');
- later(()=>toast('바닥을 누르면 그곳으로 이동해요. 화면을 끌면 카메라가 돌아가요'),4200);
- later(()=>toast('달리기 버튼을 연달아 누르면 빨라져요'),8400);}
+ toast(g?`오늘 우리 반 ${g}명이 달렸어요. 하이파이브해 봐요`:live?`지금 ${live+1}명이 함께 달려요`:'오늘 첫 주자가 되어 볼까요?');
+ later(()=>toast('바닥을 누르면 그곳으로 가요'),4200);
+ later(()=>toast('달리기를 연달아 누르면 빨라져요'),8400);}
 function onCast({event,payload:d}){if(closed||!d||d.from===ME.id)return;const p=byId(d.from);if(!p)return;
  if(event==='st'){if(p.live)applyRemote(p,d);return;}
  if(event==='say'){if(!OK_SAY.has(d.t))return;bubble(p,d.t);if(!seen(p))toast(`${p.n}님: "${d.t}"`);
@@ -480,7 +505,7 @@ function connect(){
 // ── 오늘 달린 친구들: 접속하지 않아도 트랙을 돌아요(조금 느리게 달려서 따라잡을 수 있어요) ──
 function addGhosts(){const gs=Array.isArray(opts.ghosts)?opts.ghosts.slice(0,40):[];const LN=[1,3,0,4,2,5];
  gs.forEach((g,i)=>{if(!g||!g.id||g.id===ME.id||byId(g.id))return;const hh=hash(g.id),cls=CL[g.cls]!=null?g.cls:ME.cls;
-  const p=person({id:String(g.id),n:String(g.name||'러너').slice(0,16),cls,hat:HATS[1+hh%(HATS.length-1)],hatC:hh%3===0?ccol(cls):[0xffffff,0x1b2333,0xcdf564,0x8fd3ff,0xff9fc0][hh%5],
+  const p=person({id:String(g.id),n:String(g.name||'러너').slice(0,16),cls,look:g.look&&typeof g.look==='object'?g.look:{hat:HATS[1+hh%(HATS.length-1)],hatC:hh%3===0?'':['흰색','검정','라임','하늘','분홍'][hh%5],hair:['짧은','앞머리','묶음','앞머리묶음'][(hh>>3)%4],hairC:['검정','갈색','밝은갈색'][(hh>>5)%3]},
    s:me.s+8+i*11,lane:LN[i%LN.length],mode:'run',speed:2.7+(hh%7)/10});
   Object.assign(p,{ghost:true,runId:g.runId,km:+g.km||0,cheered:!!g.cheered,runSince:performance.now()-60000*(hh%5)});ppl.push(p);});
  setCnt();}
@@ -516,7 +541,7 @@ function frame(now){if(closed)return;const raw=Math.min(600,Math.max(0,(now-last
   const want=new T.Vector3(p.x-fx*c*D+ox*sn*D,H,p.z-fz*c*D+oz*sn*D),ah=c>0?c*6:0,lk=new T.Vector3(p.x+fx*ah,1.7,p.z+fz*ah);
   if(!over){camPos.lerp(want,Math.min(1,dt*7));camLook.lerp(lk,Math.min(1,dt*9));}
   const sec=Math.floor((now-joined)/1000);k('tm').textContent=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
-  k('lp').textContent=(dist/P).toFixed(1);k('pc').textContent=paceTxt(me.v);const h=Math.min(100,sec/1.8);k('heat').style.width=h+'%';k('heatTxt').textContent=h<35?'몸 데우는 중':h<80?'몸이 따뜻해졌어요':'완전히 풀렸어요';}
+  k('lp').textContent=(dist/P).toFixed(1);k('pc').textContent=paceTxt(me.v);}
  // 전체 보기: 위에서 내려다봐요. 세로 화면이면 트랙 긴 쪽이 위아래로 오게 돌려요.
  if(over){const tn=Math.tan(25*Math.PI/180),port=cam.aspect<1,ha=Math.atan(tn*cam.aspect),H=port?Math.max(64/tn,34/Math.tan(ha)):Math.max(34/tn,64/Math.tan(ha));
   cam.up.set(port?-1:0,port?0:1,port?0:0);if(!port)cam.up.set(0,0,-1);camPos.lerp(new T.Vector3(0,H,.01),Math.min(1,raw*3));camLook.lerp(new T.Vector3(0,0,0),Math.min(1,raw*3));}
@@ -559,12 +584,9 @@ const onClick=e=>{const b=e.target.closest('button');if(!b||!root.contains(b))re
  if(kk==='sayBtn'){k('sheet').hidden=false;return;}
  if(kk==='sheetX'){k('sheet').hidden=true;return;}
  if(b.dataset.p){say(b.dataset.p);k('sheet').hidden=true;return;}
- if(kk==='cam'){camI=(camI+1)%CAMS.length;camAT=CAMS[camI][0];camH=camAT===0?6.2:4.4;camD=camAT===0?11:10;toast(CAMS[camI][1]+' · 화면을 옆으로 끌면 돌려볼 수 있어요');return;}
+ if(kk==='cam'){camI=(camI+1)%CAMS.length;camAT=CAMS[camI][0];camH=camAT===0?6.2:4.4;camD=camAT===0?11:10;toast(CAMS[camI][1]);return;}
  if(kk==='dress'){drawDress();k('dressSh').hidden=false;frontBefore=front;front=true;return;}
- if(kk==='dressX'){k('dressSh').hidden=true;front=frontBefore;return;}
- if(b.dataset.h){me.hat=b.dataset.h;setHat(me.av,me.hat,me.hatC);saveLook();sendState();return drawDress();}
- if(b.dataset.c){me.hatC=+b.dataset.c;setHat(me.av,me.hat,me.hatC);saveLook();sendState();return drawDress();}
- if(b.dataset.f){me.face=b.dataset.f;me.tmpT=0;saveLook();sendState();return drawDress();}};
+ if(kk==='dressX'){k('dressSh').hidden=true;front=frontBefore;if(dressEd){dressEd.destroy();dressEd=null;}return;}};
 root.addEventListener('click',onClick);
 const escA=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 k('phr').innerHTML=Object.entries(PHR).map(([c,v])=>`<div class="bkt-cat">${escA(c)}</div><div class="bkt-chips">${v.map(t=>`<button data-p="${escA(t)}">${escA(t)}</button>`).join('')}</div>`).join('');
@@ -580,21 +602,24 @@ function drawMap(){const dpr=Math.min(devicePixelRatio||1,2),w=mapC.clientWidth|
  dot(me.av.root.position,'#cdf564','#1c2a05',3.2);}
 function setOver(on){over=on;root.classList.toggle('bkt-over',on);k('mapT').textContent=on?'눌러서 돌아가기':'눌러서 전체 보기';
  ppl.concat(me).forEach(p=>p.av.root.scale.setScalar(on?2.6:1));S.fog=on?null:new T.Fog(sky.fog,60,230);
- if(on)toast('트랙 전체를 보고 있어요. 미니맵을 다시 누르면 돌아가요');}
+ if(on)toast('미니맵을 다시 누르면 돌아가요');}
 // 접속 인원 → 누가 있는지 목록(지금 접속한 사람, 오늘 달린 우리 반)
 const hx=c=>'#'+c.toString(16).padStart(6,'0');
 function drawWho(){const live=ppl.filter(p=>p.live),gh=ppl.filter(p=>p.ghost);
- const row=(p,sub,btn)=>`<div class="bkt-who-row"><span class="dot" style="background:${hx(ccol(p.cls))}"></span><button class="nm" data-who="${escA(p.id)}">${escA(p.me?p.n+' (나)':p.n)}<small>${escA(sub)}</small></button>${btn||''}</div>`;
+ const face=p=>AV?`<span class="av">${AV.svg(p.look,hx(ccol(p.cls)),34)}</span>`:`<span class="dot" style="background:${hx(ccol(p.cls))}"></span>`;
+ const row=(p,sub,btn)=>`<div class="bkt-who-row">${face(p)}<button class="nm" data-who="${escA(p.id)}">${escA(p.me?p.n+' (나)':p.n)}<small>${escA(sub)}</small></button>${btn||''}</div>`;
  const cheerBtn=p=>p.runId?(p.cheered?'<span class="done">하이파이브함</span>':`<button class="hf" data-who="${escA(p.id)}" data-hf="1">하이파이브</button>`):'';
- const meRow=`<div class="bkt-who-row"><span class="dot" style="background:${hx(ccol(me.cls))}"></span><span class="nm">${escA(ME.name||'나')} (나)<small>지금 달리는 중</small></span></div>`;
+ const meRow=`<div class="bkt-who-row">${face(me)}<span class="nm">${escA(ME.name||'나')} (나)<small>지금 달리는 중</small></span></div>`;
  let h=`<div class="bkt-cat">지금 접속 중 ${live.length+1}명</div>`+meRow+live.map(p=>row(p,p.sit?'벤치에서 쉬는 중':p.free?'트랙 밖에서 걷는 중':p.mode==='walk'?'걷는 중':'달리는 중',cheerBtn(p))).join('');
  if(gh.length)h+=`<div class="bkt-cat">오늘 달린 우리 반 ${gh.length}명</div>`+gh.map(p=>row(p,`오늘 ${kmTxt(p.km)} 인증`,cheerBtn(p))).join('');
  k('whoList').innerHTML=h;}
 // 목록에서 고른 사람을 잠깐 비춰요(3초 뒤 다시 나를 따라가요)
 let peekP=null,peekT=0;function peekAt(o){peekP=o;peekT=3.5;toast(`${o.n}님 쪽을 보고 있어요`);}
-function drawDress(){k('hatC').innerHTML=HATS.map(h=>`<button aria-pressed="${me.hat===h}" data-h="${h}">${h}</button>`).join('');
- k('colC').innerHTML=COLS.map(([n,c])=>{const v=c??ccol(me.cls);return`<button aria-label="${n}" aria-pressed="${me.hatC===v}" data-c="${v}" style="background:#${v.toString(16).padStart(6,'0')}${me.hatC===v?';outline:3px solid #cdf564;outline-offset:2px':''}"></button>`;}).join('');
- k('faceC').innerHTML=Object.keys(FACES).map(f=>`<button aria-pressed="${me.face===f}" data-f="${f}">${f}</button>`).join('');}
+// 꾸미기 시트: 앱 프로필과 같은 편집기(avatar.js)를 써요
+let dressEd=null;
+function drawDress(){const el=k('dressEd');if(dressEd){dressEd.destroy();dressEd=null;}
+ if(!AV){el.innerHTML='<p>꾸미기를 불러오지 못했어요. 앱을 새로 고친 뒤 다시 열어 주세요.</p>';return;}
+ dressEd=AV.editor(el,me.look,hx(ccol(me.cls)),changeLook);}
 
 // 시간대가 바뀌면 트랙도 저절로 바뀌어요
 const todTimer=setInterval(()=>{const t2=todOf(new Date().getHours());if(t2!==tod){tod=t2;applySky();toast({새벽:'날이 밝아와요. 새벽 트랙이 됐어요',낮:'해가 떴어요. 낮 트랙이 됐어요',저녁:'노을이 져요. 저녁 트랙이 됐어요',밤:'해가 졌어요. 조명이 켜졌어요'}[tod]);}},30000);
@@ -606,7 +631,8 @@ const onPop=()=>{pushed=false;finish();};addEventListener('popstate',onPop);
 addEventListener('resize',size);
 
 // ── 시작 ──
-me=person({id:ME.id,n:'나',cls:ME.cls,me:true,hat:look.hat,hatC:look.hatC??ccol(ME.cls),face:look.face,lane:2,mode:'run',speed:3.8});
+me=person({id:ME.id,n:'나',cls:ME.cls,me:true,look,lane:2,mode:'run',speed:3.8});
+if(migrated)saveLook();
 me.laneF=2;
 applySky();size();place(me);{const p=me.av.root.position;camPos.set(p.x,12,p.z-20);}
 addGhosts();
@@ -623,10 +649,10 @@ function finish(){if(closed)return;closed=true;cur=null;
  root.remove();style.remove();document.documentElement.style.overflow=prevOverflow;
  if(typeof opts.onClose==='function')try{opts.onClose();}catch(_){}}
 
-const api={close,
+const api={close,toast:(t,hi)=>toast(t,hi),
  // 시험용 손잡이
- _t:{goTo:(x,z,o)=>goTo(x,z,o),bench:()=>[BENCH[0].x,BENCH[0].z],people:()=>ppl.map(p=>({id:p.id,n:p.n,s:p.s,lane:p.lane,free:!!p.free,sit:!!p.sit,hat:p.hat,face:p.face,ghost:!!p.ghost,live:!!p.live,cheered:!!p.cheered,runId:p.runId||null,x:p.av.root.position.x,z:p.av.root.position.z})),
-  me:()=>{const q=me.av.root.position;return{s:me.s,lane:me.lane,x:q.x,z:q.z,free:!!me.free,sit:!!me.sit,v:me.v,boost,hat:me.hat,face:me.face};},live:LIVE}};
+ _t:{goTo:(x,z,o)=>goTo(x,z,o),bench:()=>[BENCH[0].x,BENCH[0].z],people:()=>ppl.map(p=>({id:p.id,n:p.n,s:p.s,lane:p.lane,free:!!p.free,sit:!!p.sit,look:p.look,face:p.face,ghost:!!p.ghost,live:!!p.live,cheered:!!p.cheered,runId:p.runId||null,x:p.av.root.position.x,z:p.av.root.position.z})),
+  me:()=>{const q=me.av.root.position;return{s:me.s,lane:me.lane,x:q.x,z:q.z,free:!!me.free,sit:!!me.sit,v:me.v,boost,look:me.look,face:me.face};},live:LIVE}};
 return api;
 }
 })();
