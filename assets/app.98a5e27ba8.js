@@ -1,4 +1,4 @@
-window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.ac31c791dc.js";window.BK_TRACK_SRC="assets/track.45300c5391.js";
+window.BK_CONFIG={"url": "https://mckfgjafnvgufancnlok.supabase.co", "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZnamFmbnZndWZhbmNubG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNDYzNDMsImV4cCI6MjEwODcyMjM0M30.ZnEKShSfqfz7wMK-giZ1UX-7dMA_9juYMy_OmUBGqco"};window.BK_OCR_SRC="assets/ocr.b1d5301b78.js";window.BK_TRACK_SRC="assets/track.45300c5391.js";
 /* 러닝 BK 소리: 효과음과 배경음악을 브라우저 안에서 직접 합성해요.
    음원 파일을 하나도 쓰지 않아서 저작권·라이선스 걱정이 없고, 앱 용량도 거의 늘지 않아요(약 9KB).
    BKSound.play('levelup') 처럼 부르고, 설정은 기기마다 localStorage 'bk:sound'에 저장돼요. */
@@ -958,23 +958,29 @@ let ocrStage=0;const ocrPct=p=>Math.min(99,Math.round(ocrStage?60+(ocrStage-1+p)
 const PACE_FLOOR=510;
 const OCR_KEYS=['date','time','distance','durationSeconds','paceSeconds'];
 async function readPhoto(w,file,stale){ocrStage=0;
- let first=null;const parse=async(k,mode)=>{const {data}=await w.recognize(await prep(file,k,mode),{},{blocks:true,text:true}),o={today:D.today},lines=[];
+ let first=null,timeLine='';const others=[];const parse=async(k,mode)=>{const {data}=await w.recognize(await prep(file,k,mode),{},{blocks:true,text:true}),o={today:D.today},lines=[];
   (data.blocks||[]).forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>lines.push({text:l.text,...l.bbox}))));
   if(!first&&k===1)first=lines;
-  return lines.length?parseRunningOcr.layout(lines,o):parseRunningOcr(data.text||'',o);};
- const p=await parse(1,0);if(stale())return null;
+  const q=lines.length?parseRunningOcr.layout(lines,o):parseRunningOcr(data.text||'',o);
+  // the line the start clock came from, to tell whether its 오전/오후 was read
+  if(q.time){const hh=+q.time.slice(0,2),mm=q.time.slice(3),re=new RegExp(`(^|\\D)0?(${hh}|${hh%12||12})\\s*:\\s*${mm}(?!\\d)`);q.timeLine=(lines.length?lines.map(l=>l.text):(data.text||'').split('\n')).find(t=>re.test(t))||'';}
+  return q;};
+ // 9 a.m. without its 오전/오후 may really be 9 p.m.: Samsung Health's "11월 23일 @ 오후 5:46" came out as "@ 25 5:46" (11-24).
+ const unsureTime=()=>p.time&&+p.time.slice(0,2)>=1&&+p.time.slice(0,2)<=12&&!/오전|오후|\b(?:am|pm)\b/i.test(timeLine)&&!/(^|\D)0\d\s*:\s*\d{2}/.test(timeLine);
+ const p=await parse(1,0);if(stale())return null;timeLine=p.timeLine||'';
  for(const [k,mode] of [[1,1],[1,2],[1.5,3],[.6,0],[.8,0]]){if(p.date&&p.time&&p.distance&&(p.durationSeconds!=null||p.paceSeconds!=null))break;
-  ocrStage++;const q=await parse(k,mode);if(stale())return null;OCR_KEYS.forEach(key=>{if(p[key]==null&&q[key]!=null)p[key]=q[key];});}
- // Still no date: read the line that holds the start clock (or "@ 20:31") on its own, 3x larger in black and white,
- // as a single line. Garmin's small gray "11월 2일 @ 20:31" on black reads reliably that way (11-03).
- if(!p.date&&first){const H=Math.max(...first.map(l=>l.y1),1),cand=first.filter(l=>l.y0>H*.04&&l.y0<H*.6&&/\d{1,2}\s*[:;]\s*\d{2}/.test(l.text)&&!/:\d{2}:/.test(l.text)&&(/@|월|일|요일|\d\s*[./]\s*\d|오전|오후|am|pm/i.test(l.text)||(p.time&&l.text.replace(/\s/g,'').includes(p.time.replace(/^0/,''))))).slice(0,2);
+  ocrStage++;const q=await parse(k,mode);if(stale())return null;others.push(q);OCR_KEYS.forEach(key=>{if(p[key]==null&&q[key]!=null){p[key]=q[key];if(key==='time')timeLine=q.timeLine||'';}});}
+ // Still no date (or a start clock without 오전/오후): read the line that holds the start clock (or "@ 20:31") on its own,
+ // 3x larger in black and white, as a single line. Garmin's small gray "11월 2일 @ 20:31" on black reads reliably that way (11-03).
+ if((!p.date||unsureTime())&&first){const H=Math.max(...first.map(l=>l.y1),1),cand=first.filter(l=>l.y0>H*.04&&l.y0<H*.6&&/\d{1,2}\s*[:;]\s*\d{2}/.test(l.text)&&!/:\d{2}:/.test(l.text)&&(/@|월|일|요일|\d\s*[./]\s*\d|오전|오후|am|pm/i.test(l.text)||(p.time&&l.text.replace(/\s/g,'').includes(p.time.replace(/^0/,''))))).slice(0,2);
   try{await w.setParameters({tessedit_pageseg_mode:'7'});
    for(const l of cand){const h=l.y1-l.y0,box={x0:l.x0-h,y0:l.y0-h*.4,x1:l.x1+h,y1:l.y1+h*.4};
     for(const [k,mode] of [[3,3],[3,1],[2.2,3]]){const {data}=await w.recognize(await prep(file,k,mode,box));if(stale())return null;const q=parseRunningOcr(data.text||'',{today:D.today});
-     if(q.date){p.date=q.date;if(!p.time&&q.time)p.time=q.time;break;}}
-    if(p.date)break;}}
+     if(q.date){if(!p.date)p.date=q.date;if(q.time&&(!p.time||/오전|오후|\b(?:am|pm)\b/i.test(data.text||''))){p.time=q.time;timeLine=data.text||'';}break;}}
+    if(p.date&&!unsureTime())break;}}
   finally{await w.setParameters({tessedit_pageseg_mode:'11'});}}
- return p;}
+ // distance x pace must give the time: a look-alike digit (5:18 read as 9:18) is fixed or the pace is left to the app
+ delete p.timeLine;return parseRunningOcr.reconcile(p,others);}
 async function runOcr(file){
  stopOcr();const job=ocrJob,msg=$('#ocrmsg'),f=$('#rf');msg.className='ocr';msg.textContent='사진 인식을 준비하는 중이에요…';
  if(!(await ensureOcr())){if(job===ocrJob&&$('#rf'))msg.textContent='이 화면에서는 자동 인식을 쓸 수 없어요. 직접 입력해 주세요.';return;}

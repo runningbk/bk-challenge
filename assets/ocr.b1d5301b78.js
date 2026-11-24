@@ -59,7 +59,7 @@ globalThis.BK_OCR_ASSETS={"worker":"/*! For license information please see worke
 
   // A field may use two following unlabeled lines or one clear value above it.
   // OCR errors remain visible for review rather than being corrected by guesswork.
-  var labelSource = '(?:러닝\\s*)?(?:시작|출발)(?:\\s*(?:시간|시각))?|\\bstart(?:ed)?(?:\\s*(?:time|at))?\\b|달린\\s*거리|러닝\\s*거리|거리|\\brunning\\s*distance\\b|\\bdistance\\b|(?:경과|총|운동|이동|소요)\\s*시간|\\b(?:elapsed(?:\\s*time)?|total\\s*time|moving\\s*time|duration|time)\\b|시간|\\bdate\\b|날짜|일시|평균\\s*(?:페이스|속도)|페이스|속도|칼로리|걸음|기록|심박수?|케이던스|고도|상승|\\b(?:bpm|heart\\s*rate|cadence|elevation)\\b|\\b(?:average\\s*)?(?:pace|speed)\\b|\\b(?:calories|steps|personal\\s*best|record)\\b';
+  var labelSource = '(?:러닝\\s*)?(?:시작|출발)(?:\\s*(?:시간|시각))?|\\bstart(?:ed)?(?:\\s*(?:time|at))?\\b|달린\\s*거리|러닝\\s*거리|거리|\\brunning\\s*distance\\b|\\bdistance\\b|(?:경과|총|종|운동|이동|소요)\\s*시간|\\b(?:elapsed(?:\\s*time)?|total\\s*time|moving\\s*time|duration|time)\\b|시간|\\bdate\\b|날짜|일시|평균\\s*(?:페이스|속도)|페이스|속도|칼로리|걸음|기록|심박수?|케이던스|고도|상승|\\b(?:bpm|heart\\s*rate|cadence|elevation)\\b|\\b(?:average\\s*)?(?:pace|speed)\\b|\\b(?:calories|steps|personal\\s*best|record)\\b';
 
   function labelsIn(line) {
     var regex = new RegExp(labelSource, 'gi');
@@ -73,7 +73,7 @@ globalThis.BK_OCR_ASSETS={"worker":"/*! For license information please see worke
         : /시작|출발|^start/i.test(label) ? 'start'
         : /date|날짜|일시/i.test(label) ? 'date'
         : /시간|elapsed|duration|time/i.test(label) ? 'duration' : 'ignore';
-      var priority = /경과|총|운동|소요|elapsed|total|duration/i.test(label) ? 2
+      var priority = /경과|총|종|운동|소요|elapsed|total|duration/i.test(label) ? 2
         : /이동|moving/i.test(label) ? 1 : 0;
       labels.push({ kind: kind, priority: priority, index: match.index, end: regex.lastIndex });
     }
@@ -226,6 +226,10 @@ globalThis.BK_OCR_ASSETS={"worker":"/*! For license information please see worke
     }
     if (/km\s*\/\s*h|\/\s*km|킬로미터\s*\/\s*시/i.test(text)) return null;
     if (!/(?:^|[^a-z])km\b|킬로미터|킬로메터/i.test(text)) {
+      // A value right by the "거리" label whose small "km" came out as junk ("18.74ㅠ", "18.74 en", 11-24):
+      // a decimal number with at most three stray letters still counts. The pace/time check catches a bad guess.
+      var bare = text.trim().match(/^(\d{1,3}[.,]\d{1,2})\s*[^\d\s.,:\/'′’"]{0,3}$/);
+      if (bare && Number(bare[1].replace(',', '.')) > 0) return String(Number(bare[1].replace(',', '.')));
       warnings.push('거리(distance)의 km 단위를 확인해 주세요.');
       return null;
     }
@@ -379,6 +383,61 @@ globalThis.BK_OCR_ASSETS={"worker":"/*! For license information please see worke
     return parseRunningOcr(pairs.map(function (pair) { return '기록\n' + pair; }).concat(['기록'], rest).join('\n'), options);
   }
   parseRunningOcr.layout = parseRunningLayout;
+
+  // Distance x pace should give the time. OCR sometimes reads one digit as a look-alike (Samsung Health's
+  // white "5:18 /km" on black came out as "9:18", which then broke the 8:30 pace limit; 11-24).
+  // When the three disagree, try the other readings' values, then each single look-alike digit in pace,
+  // time and distance, and keep the change that makes them agree. Nothing agrees: the photo's pace is
+  // dropped, so the app works it out from distance and time (the server checks that pace anyway).
+  var LOOKALIKE = { '0': '869', '1': '74', '3': '859', '4': '19', '5': '9638', '6': '8590', '7': '1', '8': '36509', '9': '583' };
+  function swaps(text) {
+    var out = [];
+    for (var i = 0; i < text.length; i++) (LOOKALIKE[text[i]] || '').split('').forEach(function (d) { out.push(text.slice(0, i) + d + text.slice(i + 1)); });
+    return out;
+  }
+  function clockText(seconds, parts) {
+    var s = Math.round(seconds), p2 = function (n) { return String(n).padStart(2, '0'); };
+    return parts === 3 ? Math.floor(s / 3600) + ':' + p2(Math.floor(s % 3600 / 60)) + ':' + p2(s % 60) : Math.floor(s / 60) + ':' + p2(s % 60);
+  }
+  function clockSeconds(text) {
+    var n = text.split(':').map(Number);
+    if (n.slice(1).some(function (v) { return v > 59; })) return null;
+    return n.length === 3 ? n[0] * 3600 + n[1] * 60 + n[2] : n[0] * 60 + n[1];
+  }
+  function fits(distance, duration, pace) {
+    var d = Number(distance);
+    return d > 0 && duration > 0 && pace > 0 && Math.abs(duration / d - pace) <= Math.max(2, pace * 0.015);
+  }
+  function reconcile(result, others) {
+    var d = result.distance, t = result.durationSeconds, c = result.paceSeconds;
+    if (!(Number(d) > 0 && t > 0 && c > 0) || fits(d, t, c)) return result;
+    var found = null;
+    (others || []).some(function (o) {
+      if (o.paceSeconds && fits(d, t, o.paceSeconds)) found = { paceSeconds: o.paceSeconds };
+      else if (o.durationSeconds && fits(d, o.durationSeconds, c)) found = { durationSeconds: o.durationSeconds };
+      else if (o.distance && fits(o.distance, t, c)) found = { distance: o.distance };
+      return !!found;
+    });
+    if (!found) {
+      // A misread pace is fixed first: it is the value this check exists for, and the one the app can recompute.
+      var paces = [], options = [];
+      swaps(clockText(c, 2)).forEach(function (v) { var s = clockSeconds(v); if (s >= 120 && fits(d, t, s)) paces.push({ paceSeconds: s }); });
+      if (paces.length === 1) found = paces[0];
+      var tParts = t >= 3600 ? 3 : 2;
+      swaps(clockText(t, tParts)).forEach(function (v) { var s = clockSeconds(v); if (s && fits(d, s, c)) options.push({ durationSeconds: s }); });
+      swaps(String(d)).forEach(function (v) { if (Number(v) > 0 && fits(v, t, c)) options.push({ distance: String(Number(v)) }); });
+      if (!found && !paces.length && options.length === 1) found = options[0];
+    }
+    if (found) {
+      Object.keys(found).forEach(function (key) { result[key] = found[key]; });
+      result.warnings.push('거리·시간·페이스가 서로 맞지 않아 비슷한 숫자로 바로잡았어요. 사진과 비교해 주세요.');
+    } else {
+      result.paceSeconds = null;
+      result.warnings.push('사진의 페이스가 거리·시간과 맞지 않아 거리와 시간으로 다시 계산했어요.');
+    }
+    return result;
+  }
+  parseRunningOcr.reconcile = reconcile;
 
   if (typeof module === 'object' && module.exports) module.exports = parseRunningOcr;
   root.parseRunningOcr = parseRunningOcr;
